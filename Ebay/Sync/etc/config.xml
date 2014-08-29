@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<config>
+     <modules>
+        <Ebay_Sync>
+          <version>1.0.0</version>
+        </Ebay_Sync>
+     </modules>
+     <frontend>       
+        <routers>
+            <ttest>
+            	<use>standard</use>
+            	<args>
+					 <module>Ebay_Sync</module>
+					 <frontName>testing</frontName>
+           		</args>
+            </ttest>
+        </routers>    
+    </frontend>
+</config>
