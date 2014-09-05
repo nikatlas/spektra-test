@@ -25,7 +25,6 @@
         $responseDoc = new DomDocument();
         $responseDoc->loadXML($responseXml);
 
-
         //get any error nodes
         $errors = $responseDoc->getElementsByTagName('Errors');
 

@@ -1,21 +1,11 @@
 <?
 require_once ( Mage::getBaseDir('code').'/local/Ebay/Sync/ebay/eBay.php' );
 include_once( Mage::getBaseDir('code').'local/Ebay/Sync/ebay/keys.php' );
-class Ebay_Sync_IndexController extends Mage_Core_Controller_Front_Action
+class Ebay_Sync_Adminhtml_IndexController extends Mage_Adminhtml_Controller_Action
 {
    public function indexAction ()
    {
-	   //ini_set('display_errors', 1);
 		$this->loadLayout();
-		//Release layout stream... lol... sounds fancy
-		//$block = $this->getLayout()->createBlock('ebaysync/monblock');
-		//var_dump($block);
-		if($block)
-		{
-			$block->setTemplate('ebay/page.phtml');
-			//echo "!!!!!!!!!!!!!!!";
-			//var_dump($block->toHtml());   
-		}    
 		$this->renderLayout();
 		return;
 	   //exit("ads");
@@ -73,6 +63,83 @@ class Ebay_Sync_IndexController extends Mage_Core_Controller_Front_Action
 
      echo 'test index';
    }
+   
+   public function disableAction (){
+    $resource = Mage::getSingleton('core/resource');
+    $writeConnection = $resource->getConnection('core_write');
+    $query = "UPDATE  catalog_product_entity_int SET value='2' WHERE attribute_id=96";
+    $writeConnection->query($query);
+   }
+   public function enableAction (){
+	$resource = Mage::getSingleton('core/resource');
+    $writeConnection = $resource->getConnection('core_write');
+    $query = "UPDATE catalog_product_entity_int SET value='1' WHERE attribute_id=96";
+    $writeConnection->query($query);
+   }
+   
+   public function itemAction ()
+   {
+	 $itemid = $_REQUEST['itemid'];
+	 if ( !isset($_REQUEST['itemid']) || $itemid == "" ) {
+				 echo "-2";return; 
+	 }
+	 global $appID,$devID,$certID,$RuName,$serverUrl, $userToken,$compatabilityLevel, $siteID;
+	 initKeys();
+	 session_start();
+	 $ebay = new Ebay($appID,$devID,$certID,$RuName,$serverUrl, $userToken,$compatabilityLevel, $siteID);
+	 $item = new Item();
+	 $item = $ebay->getItemData($itemid);     
+	 if ( !isset($item->sku) || $item->sku == "" ) {
+				 echo "-1";return; 
+	 }
+	 
+	 $cat = $item->checkCreateCategoryTree($item->categoryName);	
+	 $item->checkCreateProduct($cat);
+	 $item->downloadImages();
+	 echo "0";return;	
+   }
+   public function mamethodeAction ()
+   {
+	 // GLOBALS INITIATED IN KEYS
+	 global $appID,$devID,$certID,$RuName,$serverUrl, $userToken,$compatabilityLevel, $siteID;
+	 initKeys();
+
+
+     // 
+	 session_start();
+	 $ebay = new Ebay($appID,$devID,$certID,$RuName,$serverUrl, $userToken,$compatabilityLevel, $siteID);
+	 $ebay->getStuff();
+	 $item = new Item();
+	 $item = $ebay->getItemData(221455735202);     
+	 $cat = $this->checkCreateCategoryTree($item->categoryName);	 
+	 $this->checkCreateProduct($cat);
+	 $this->downloadImages();
+	
+   }
+   public function layoutAction (){
+		$this->loadLayout();
+		$this->renderLayout();
+   }
+   
+   public function checkSku($sku){
+			$id = Mage::getModel('catalog/product')->getIdBySku($sku);
+			if ($id){
+				return true;
+			}
+			else{
+				return false;
+			}   
+   }
+}
+
+class Item {
+	function __construct(){
+	return;	
+	}
+	public function setSku($sku){
+		$this->sku = $sku;	
+	}	
+	
    public function checkSku($sku){
 			$id = Mage::getModel('catalog/product')->getIdBySku($sku);
 			if ($id){
@@ -145,41 +212,45 @@ class Ebay_Sync_IndexController extends Mage_Core_Controller_Front_Action
 		$newPrice = $price*$rate;
 		return $newPrice;
    }
-   public function checkCreateProduct($item , $cat){
+   public function checkCreateProduct($cat){
 	   
 	   try{
 	   	Mage::app()->setCurrentStore(Mage_Core_Model_App::ADMIN_STORE_ID);
-		if( $this->checkSku($item->sku) == false ){
+		if( $this->checkSku($this->sku) == false ){
 			$product = Mage::getModel('catalog/product');
 
 			$product->setAttributeSetId(4); 
-			$product->setSku($item->sku);	
+			$product->setSku($this->sku);	
 			$product->save();
+			echo "1";
 		}
-		$pid = Mage::getModel('catalog/product')->getIdBySku($item->sku);
+		else{
+			echo "2";	
+		}
+		$pid = Mage::getModel('catalog/product')->getIdBySku($this->sku);
 		$product = Mage::getModel('catalog/product')->load($pid);
 
 		$product->setAttributeSetId(4); 
-		$product->setSku($item->sku);
-		$product->setName($item->name);
-		$product->setDescription($item->description);
+		$product->setSku($this->sku);
+		$product->setName($this->name);
+		$product->setDescription($this->description);
 		$product->setShortDescription(" ");
-		$product->setPrice($this->priceToEur($item->price,$item->currency));
+		$product->setPrice($this->priceToEur($this->price,$this->currency));
 		//$product->setTypeId('simple');
 		$product->setCategoryIds(array($cat->getId())); 
-		$product->setWeight(isset($item->weight)?$item->weight:0.0); // need to fetch weight , I am not currently
+		$product->setWeight(isset($this->weight)?$this->weight:0.0); // need to fetch weight , I am not currently
 		$product->setTaxClassId(2); // taxable goods
 		$product->setVisibility(4); // catalog, search
 		$product->setStatus(1); // enabled
 		// assign product to the default website
 		$product->setWebsiteIds(array(Mage::app()->getStore(true)->getWebsite()->getId()));	
-		$product->setMetaTitle($item->name);
+		$product->setMetaTitle($this->name);
 		$product->save();
 
 		// for stock
 		$stockData = $product->getStockData();
-		$stockData['qty'] = $item->quantity;
-		$stockData['is_in_stock'] = (($item->quantity>0)?1:0);
+		$stockData['qty'] = $this->quantity;
+		$stockData['is_in_stock'] = (($this->quantity>0)?1:0);
 		$stockData['manage_stock'] = 1;
 		$stockData['use_config_manage_stock'] = 0;
 		$product->setStockData($stockData);
@@ -197,18 +268,18 @@ class Ebay_Sync_IndexController extends Mage_Core_Controller_Front_Action
 		} 
 		return	 false;
    }
-   public function downloadImages($item){
-       $pid = Mage::getModel('catalog/product')->getIdBySku($item->sku);
+   public function downloadImages(){
+       $pid = Mage::getModel('catalog/product')->getIdBySku($this->sku);
 	   $product = Mage::getModel('catalog/product')->load($pid); 
 
-	   for( $i=sizeof($item->pictures)-1;$i>=0;$i--){
-			$pic = 		   $item->pictures[$i];
+	   for( $i=sizeof($this->pictures)-1;$i>=0;$i--){
+			$pic = 		   $this->pictures[$i];
 			$image_url  = $pic; //get external image url from csv
 			$image_type = substr(strrchr($image_url,"."),1,3); //find the image extension
-			$filename   = md5($image_url . $item->sku).'.'.$image_type; //give a new name, you can modify as per your requirement
+			$filename   = md5($image_url . $this->sku).'.'.$image_type; //give a new name, you can modify as per your requirement
 			$filepath   = Mage::getBaseDir('media') . DS . 'downloadable'. DS . $filename; //path for temp storage folder: ./media/import/
 			/// CHECK DONT REDOWNLOAD!!
-			if( $this->checkIfImageExists($product , md5($image_url . $item->sku) ) )continue;
+			if( $this->checkIfImageExists($product , md5($image_url . $this->sku) ) )continue;
 			file_put_contents($filepath, file_get_contents(trim($image_url))); //store the image from external url to the temp storage folder
 			$mediaAttribute = array (
 					'thumbnail',
@@ -219,43 +290,5 @@ class Ebay_Sync_IndexController extends Mage_Core_Controller_Front_Action
 	   }
 	   $product->save();
    }
-   public function mamethodeAction ()
-   {
-	 // GLOBALS INITIATED IN KEYS
-	 global $appID,$devID,$certID,$RuName,$serverUrl, $userToken,$compatabilityLevel, $siteID;
-	 initKeys();
-     // 
-	 session_start();
-	 $ebay = new Ebay($appID,$devID,$certID,$RuName,$serverUrl, $userToken,$compatabilityLevel, $siteID);
-	 $ebay->getStuff();
-	 //echo sizeof($ebay->itemIds);
-	 $item = new Item();
-	 $item = $ebay->getItemData(221455735202);
-	
-     
-	 $cat = $this->checkCreateCategoryTree($item->categoryName);	 
-	 
-	 $this->checkCreateProduct($item,$cat);
-	 $this->downloadImages($item);
-	 
-	 /* 
-	 echo '!';
-	 $ebay->ebayManagement();
-	 echo "!";
-	 */
-   }
-   public function layoutAction (){
-		$this->loadLayout();
-		$this->renderLayout();
-   }
-}
-
-class Item {
-	function __construct(){
-	return;	
-	}
-	public function setSku($sku){
-		$this->sku = $sku;	
-	}	
 }
 ?>

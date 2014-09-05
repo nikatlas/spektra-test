@@ -37,7 +37,7 @@ class Ebay {
         $this->certID= $certID;
         $this->compatabilityLevel= $compatabilityLevel;
         $this->siteID= $siteID;
-        $this->userToken= "";
+        $this->userToken= $userToken;
         $this->serverUrl= $serverUrl;
         $this->runame= $RuName;
 	
@@ -47,8 +47,9 @@ class Ebay {
 		$date->sub(new DateInterval('P1D'));
         $this->StartTimeFrom= $date->format('Y-m-dTH:i:s').'z';
         
-        $this->EntriesPerPage= 3;
+        $this->EntriesPerPage= 50;
         $this->timeTail = 'T21:59:59.005Z';
+		$this->itemIds = array();
     }
     
     
@@ -64,7 +65,22 @@ class Ebay {
         $array = json_decode($json,TRUE);
         return $array;
     }
+	public function getStuff(){
+			$res =  $this->ebayManagement();
+			if( !$res ) return false;
 
+			$ebayItems = array();
+			for ( $i=0;$i< $res['totalPages'];$i++ ){
+				$doc = new DOMDocument();
+				$doc->loadXML($res['myeBaySellingXml'][$i]);
+				$items = $doc->getElementsByTagName("ItemID");
+				foreach( $items as $item ){
+					array_push($ebayItems, $item->nodeValue);
+				}	
+			}
+			$this->itemIds = $ebayItems;
+			return true;
+	}
     
     /**
      * Parse XML content to Object
@@ -83,7 +99,53 @@ class Ebay {
         $responseDoc->loadXML($responseXml);
         return $responseDoc;
     }
-   
+	public function getItemData($itemId){
+			 $xml = $this->getItem($itemId);
+			 //echo $xml;
+			 $doc = new DOMDocument();
+			 $desdoc = new DOMDocument();
+			 //echo $xml;
+			 $doc->loadXML($xml);
+			 $desdoc->loadHTML($doc->getElementsByTagName("Description")->item(0)->nodeValue);
+			 // GET DESCRIPTION DIV
+			 $divs = $desdoc->getElementsByTagName("div");
+			 foreach ( $divs as $div ){
+				if( $div->attributes->getNamedItem("class")->nodeValue != "des" ) continue; 
+				$des = $div;
+				break;
+			 }
+			 $descr_str = $desdoc->saveHTML($des);
+			 ////////////////////////
+			 // GET STYLES 
+			 $style_str = "";
+			 $styles = $desdoc->getElementsByTagName("style");
+			 foreach ( $styles as $style ){
+				$style_str .= $desdoc->saveHTML($style);
+			 }
+			 ////////////////////////
+			 // GET Scripts
+			 $script_str = "";
+			 $scripts = $desdoc->getElementsByTagName("script");
+			 foreach ( $scripts as $script ){
+				$script_str .= $desdoc->saveHTML($script);
+			 }
+			 ////////////////////////
+			 $item = new Item();
+			 $item->description = $script_str . " " .$style_str . " " .$descr_str;
+			 $item->setSku($doc->getElementsByTagName("SKU")->item(0)->nodeValue);
+			 $item->price = $doc->getElementsByTagName("CurrentPrice")->item(0)->nodeValue;
+			 $item->currency = $doc->getElementsByTagName("CurrentPrice")->item(0)->attributes->getNamedItem("currencyID")->nodeValue;
+			 $item->quantity = $doc->getElementsByTagName("Quantity")->item(0)->nodeValue;
+ 			 $item->categoryId = $doc->getElementsByTagName("CategoryID")->item(0)->nodeValue;
+			 $item->categoryName = $doc->getElementsByTagName("CategoryName")->item(0)->nodeValue;
+			 $pictures = $doc->getElementsByTagName("PictureURL");
+			 $item->pictures = array();
+			 foreach( $pictures as $pic ) {
+				 array_push($item->pictures , $pic->nodeValue);
+			 }
+			 $item->name = $doc->getElementsByTagName("Title")->item(0)->nodeValue;
+			 return $item;
+	}
     /**
      * Get get session id
      * 
@@ -244,6 +306,8 @@ class Ebay {
                                   <PageNumber>'.$pageNumber.'</PageNumber>  
                                 </Pagination>
                               </ActiveList>
+							  <OutputSelector>ItemID</OutputSelector>
+							  <OutputSelector>PaginationResult</OutputSelector>
                             </GetMyeBaySellingRequest>';
 
             //Create a new eBay session with all details pulled in from included keys.php
@@ -251,17 +315,37 @@ class Ebay {
             
             return $responseXml;
 
-    }
+    }	
+    public function GetItem($itemId)
+    {
+            $session = new eBaySession('GetItem',$this);
+            //Build the request Xml string
+            /*$requestXmlBody = '<?xml version="1.0" encoding="utf-8"?>
+								<GetSingleItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+								  <ItemID>'.$itemId.'</ItemID>
+								</GetSingleItemRequest>';
+			*/
+			$requestXmlBody = '<?xml version="1.0" encoding="utf-8"?>
+								<GetItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+								  <RequesterCredentials>
+									<eBayAuthToken>'.$_SESSION['userToken'].'</eBayAuthToken>
+								  </RequesterCredentials>
+								  <Version>'.$this->compatabilityLevel.'</Version>
+								  <IncludeItemSpecifics>true</IncludeItemSpecifics>
+								  <IncludeTaxTable>true</IncludeTaxTable>
+								  <IncludeWatchCount>true</IncludeWatchCount>
+								  <ItemID>'.$itemId.'</ItemID>
+								  <DetailLevel>ItemReturnDescription</DetailLevel>
+								    <IncludeSelector>Description,ItemSpecifics</IncludeSelector>
 
-    /**
-     * output result to view page
-     * 
-     * @author Rahul P R <rahul.pr@cubettech.com>
-     * @date 28-Jan-2014
-     * @param type $input 
-     * @return type
-     */
-    
+								</GetItemRequest>';
+			
+            //Create a new eBay session with all details pulled in from included keys.php
+            $responseXml = $session->sendHttpRequest($requestXmlBody);
+            
+            return $responseXml;
+
+    }    
     public function ebayManagement($input=array())
     {
         $sellerList = array();
@@ -286,6 +370,7 @@ class Ebay {
 			$sessionId = $sessionIdResponse->getElementsByTagName('SessionID')->item(0)->nodeValue;
 			$_SESSION['sesId'] = $sessionId;
 			echo '<a target="_new" href="https://signin.ebay.com/ws/eBayISAPI.dll?SignIn&RuName='.$this->runame.'&SessID='.$sessionId.'">Click Here To Link Your Ebay Account To Our Website</a>';
+			return false;
 		}
 		// OPEN FETCHING
 		else{
@@ -294,20 +379,21 @@ class Ebay {
         // Check if usertoken is getting using the sessionId(passed to the ebay pop up form)
         // if success save that userToken to $this->userToken
         // else set $this->userToken to the token value stored in session
-        
-        $fetchTokenXml = $this->fetchToken($_SESSION['sesId']) ;
-        $fetchTokenResponse = $this->parseXml($fetchTokenXml);
-        
-        if($fetchTokenResponse->getElementsByTagName('Ack')->item(0)->nodeValue=='Success'){
-			echo '1.Success ';
-            $this->userToken =  $fetchTokenResponse->getElementsByTagName('eBayAuthToken')->item(0)->nodeValue;
-        } else {
-			echo 'FetchToken Fail <BR> Please Give Authentication and refresh <br>';
-			exit( '<a target="_new" href="https://signin.ebay.com/ws/eBayISAPI.dll?SignIn&RuName='.$this->runame.'&SessID='.$_SESSION['sesId'].'">Click Here To Link Your Ebay Account To Our Website</a>');
-
-            $this->userToken = $_SESSION['userToken'];
-        }
-        
+        if( !$this->userToken || $this->userToken == '' ){
+			$fetchTokenXml = $this->fetchToken($_SESSION['sesId']) ;
+			$fetchTokenResponse = $this->parseXml($fetchTokenXml);
+			
+			if($fetchTokenResponse->getElementsByTagName('Ack')->item(0)->nodeValue=='Success'){
+				//echo '1.Success <br>';
+				$this->userToken =  $fetchTokenResponse->getElementsByTagName('eBayAuthToken')->item(0)->nodeValue;
+			} else {
+				$_SESSION['sesId'] = "";
+				echo 'FetchToken Fail <BR><br>';
+				echo 'Refresh!';
+				return false;
+	
+			}
+		}
         if($this->userToken) {
             
             //get token Status
@@ -336,21 +422,30 @@ class Ebay {
                                 : $EntriesPerPage;
                 $pageNumber = isset($input['pageNumber']) && $input['pageNumber']!=''
                                 ? $input['pageNumber'] 
-                                : $pageNumber;
+                                : 1;
                 
                 $formInput = array( 'StartTimeFrom' =>  $StartTimeFrom,
                                     'StartTimeTo'   =>  $StartTimeTo,
                                     'EntriesPerPage'=>  $EntriesPerPage,
                                     'pageNumber'    =>  $pageNumber) ;
-                
-                $sellerListXml = $this->GetSellerList($this->userToken, $StartTimeFrom, $StartTimeTo, $EntriesPerPage,$pageNumber);
-                $sellerList = $this->XML2Array($sellerListXml);
-                
-                $myeBaySellingXml = $this->GetMyeBaySelling($this->userToken,$EntriesPerPage,$pageNumber);
-				
+                //$sellerListXml = $this->GetSellerList($this->userToken, $StartTimeFrom, $StartTimeTo, $EntriesPerPage,$pageNumber);
+                //$sellerList = $this->XML2Array($sellerListXml);
+				$myeBaySellingXml = array();
+				$myeBaySellingDocs = array();
+				array_push($myeBaySellingXml , $this->GetMyeBaySelling($this->userToken,$EntriesPerPage,$pageNumber) );
         		$myeBaySellingDoc = new DOMDocument();
-		        $myeBaySellingDoc->loadXML($myeBaySellingXml);
-				$myeBaySelling = $this->XML2Array($myeBaySellingXml);
+		        $myeBaySellingDoc->loadXML($myeBaySellingXml[0]);
+				array_push($myeBaySellingDocs , $myeBaySellingDoc );
+				$myeBaySelling = $this->XML2Array($myeBaySellingXml[0]);
+				$pages = $myeBaySellingDoc->getElementsByTagName("TotalNumberOfPages")->item(0)->nodeValue;
+				$totalEntries = $myeBaySellingDoc->getElementsByTagName("TotalNumberOfEntries")->item(0)->nodeValue;
+				
+				for( $i=2;$i<=$pages;$i++){
+					array_push($myeBaySellingXml , $this->GetMyeBaySelling($this->userToken,$EntriesPerPage,$i) );
+					$myeBaySellingDoc = new DOMDocument();
+					$myeBaySellingDoc->loadXML($myeBaySellingXml[$i-1]);
+					array_push($myeBaySellingDocs , $myeBaySellingDoc );
+				}	
 				
             }
             
@@ -363,7 +458,9 @@ class Ebay {
         
         return array(   'sellerList'    =>  $sellerList,
                         'myeBaySelling' =>  $myeBaySelling,
-						'myebaySellingDoc' => $myeBaySellingDoc,
+						'myebaySellingDoc' => $myeBaySellingDocs,
+						'totalEntries' => $totalEntries,
+						'totalPages' => $pages,
 						'myeBaySellingXml' => $myeBaySellingXml,
                         'tokenStatus'   =>  $tokenStatus,
                         'runame'        =>  $this->runame,

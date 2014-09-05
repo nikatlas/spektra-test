@@ -5,15 +5,64 @@
           <version>1.0.0</version>
         </Ebay_Sync>
      </modules>
-     <frontend>       
+	 
+    <frontend>       
         <routers>
-            <ttest>
+            <ebaysync>
             	<use>standard</use>
             	<args>
 					 <module>Ebay_Sync</module>
-					 <frontName>testing</frontName>
+					 <frontName>ebaysync</frontName>
            		</args>
-            </ttest>
-        </routers>    
+            </ebaysync>
+        </routers>  
+		<layout>
+		   <updates>
+				<ebaysync>
+					 <file>ebaysync.xml</file>
+				 </ebaysync>
+			</updates>
+		</layout>  
     </frontend>
+	<admin>
+     <routers>
+         <adminebay>
+            <use>admin</use>
+            <args>
+               <module>Ebay_Sync</module>
+               <frontName>adminebay</frontName>
+            </args>
+         </adminebay>
+      </routers>
+	 </admin>
+	 <adminhtml>
+		 <layout>
+		  <updates>
+			  <adminebay>
+				  <file>ebaysync.xml</file>
+			   </adminebay>
+		  </updates>
+	   </layout>
+	   <menu>
+		  <adminebay translate="title" module="adminhtml">
+			 <title>Ebay Sync</title>
+			 <sort_order>100</sort_order>
+			 <children>
+				 <set_time>
+					   <title>Synchronize</title>
+					   <action>adminebay/adminhtml_index</action>
+				  </set_time>
+			  </children>
+		   </adminebay>
+		</menu>
+	</adminhtml>
+	<global>
+    	 <blocks>
+         	<ebaysync>
+              <class>Ebay_Sync_Block</class>
+         	</ebaysync>
+    	 </blocks>
+	</global>
+	
+	
 </config>

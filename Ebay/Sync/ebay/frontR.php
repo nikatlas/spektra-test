@@ -81,7 +81,6 @@
 				echo $item->nodeName.":".$item->nodeValue."<BR>";	
 				array_push($ebayItems, $item->nodeValue);
 			}
-			echo "I have Item IDs <br>";
 			
     ?>
 
