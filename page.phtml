@@ -7,9 +7,13 @@ if( sizeof($itemIds) > 0 ){
 var itemids = [<? foreach($itemIds as $id )echo $id.",";?>];
 var num = 0,comp = 0;
 var errors = 0 , updated = 0, created = 0,nosku = 0;
+var stop_flag = true;
+document.onkeyup=function(e) {
+  if (e.keyCode == 27) { if(stop_flag)return; document.getElementById('resume').disabled = false; stop_flag = true; }   // esc
+};
 function getItem(){
 	if( num >= itemids.length ) return;
-	
+	console.log(num);
 	new Ajax.Request('<?php echo Mage::helper("adminhtml")->getUrl("adminebay/adminhtml_index/item");?>',
 	{
 	method:'post',
@@ -22,10 +26,11 @@ function getItem(){
 		    if( data == "10" )document.getElementById('created').innerHTML = "Created:"+ ++created;
 			document.getElementById('progress').value = ++comp;  
 			document.getElementById('perc').innerHTML = parseInt(comp*100/<? echo sizeof($itemIds);?>);
-			getItem();	
+			if( stop_flag == false )getItem();	
 	},
-	onFailure: function(){ 
+	onFailure: function(){  
 		document.getElementById('errors').innerHTML = "Errors:"+ ++errors;
+		if( stop_flag == false )getItem();	
 	 }
 	});
 } 
@@ -52,15 +57,22 @@ function enableAllItems(){
 	});
 } 
 function startFetching(){
+	stop_flag = false;
     num = 0,comp = 0;
     errors = 0 , updated = 0, created = 0, nosku = 0;
 	getItem();	
 	getItem();	
 	getItem();	
 	getItem();	
-	
 }
-
+function resume(){
+	stop_flag = false;
+    document.getElementById('resume').disabled = true;
+	getItem();	
+	getItem();	
+	getItem();	
+	getItem();		
+}
 </script> 
 <h1>
 Synchronize Ebay to Magento
@@ -85,6 +97,7 @@ Updated:0
 </p><br />
 <br />
 <input type="button" value="Import" onclick="startFetching();"/><br />
+<input type="button" value="Resume" id="resume" onclick="resume();" disabled="disabled" /><br />
 <br />
 <input type="button" value="Disable All Items" onclick="javascript:disableAllItems();" /> <br />
 <input type="button" value="Enable All Items" onclick="javascript:enableAllItems();" /> 
