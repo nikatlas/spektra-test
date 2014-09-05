@@ -86,6 +86,7 @@ class Ebay_Sync_Adminhtml_IndexController extends Mage_Adminhtml_Controller_Acti
    public function itemAction ()
    {
 	 $itemid = $_REQUEST['itemid'];
+	 $sale = $_REQUEST['sale'];
 	 if ( !isset($_REQUEST['itemid']) || $itemid == "" ) {
 				 echo "-2";return; 
 	 }
@@ -99,7 +100,7 @@ class Ebay_Sync_Adminhtml_IndexController extends Mage_Adminhtml_Controller_Acti
 				 echo "-1";return; 
 	 }
 	 $cat = $item->checkCreateCategoryTree($item->categoryName);		
-	 $item->checkCreateProduct($cat);
+	 $item->checkCreateProduct($cat,$sale);
 	 $item->downloadImages();
 		
 	 echo "0";
@@ -224,7 +225,7 @@ class Item {
 		$newPrice = $price*$rate;
 		return $newPrice;
    }
-   public function checkCreateProduct($cat){
+   public function checkCreateProduct($cat,$sale){
 	   
 	   try{
 	   	Mage::app()->setCurrentStore(Mage_Core_Model_App::ADMIN_STORE_ID);
@@ -247,7 +248,7 @@ class Item {
 		$product->setName($this->name);
 		$product->setDescription($this->description);
 		$product->setShortDescription(" ");
-		$product->setPrice($this->priceToEur($this->price,$this->currency));
+		$product->setPrice($this->priceToEur($this->price,$this->currency)*((100+$sale)/100));
 		//$product->setTypeId('simple');
 		$product->setCategoryIds(array($cat->getId())); 
 		$product->setWeight(isset($this->weight)?$this->weight:0.0); // need to fetch weight , I am not currently
