@@ -1,6 +1,12 @@
 <?
 require_once ( Mage::getBaseDir('code').'/local/Ebay/Sync/ebay/eBay.php' );
 include_once( Mage::getBaseDir('code').'local/Ebay/Sync/ebay/keys.php' );
+
+function microtime_float()
+{
+    list($usec, $sec) = explode(" ", microtime());
+    return ((float)$usec + (float)$sec);
+}
 class Ebay_Sync_Adminhtml_IndexController extends Mage_Adminhtml_Controller_Action
 {
    public function indexAction ()
@@ -92,12 +98,15 @@ class Ebay_Sync_Adminhtml_IndexController extends Mage_Adminhtml_Controller_Acti
 	 if ( !isset($item->sku) || $item->sku == "" ) {
 				 echo "-1";return; 
 	 }
-	 
-	 $cat = $item->checkCreateCategoryTree($item->categoryName);	
+	 $cat = $item->checkCreateCategoryTree($item->categoryName);		
 	 $item->checkCreateProduct($cat);
 	 $item->downloadImages();
-	 echo "0";return;	
+		
+	 echo "0";
+	 return;	
    }
+   
+   
    public function mamethodeAction ()
    {
 	 // GLOBALS INITIATED IN KEYS
@@ -143,7 +152,10 @@ class Item {
    public function checkSku($sku){
 			$id = Mage::getModel('catalog/product')->getIdBySku($sku);
 			if ($id){
-				return true;
+				return true; $resource = Mage::getSingleton('core/resource');
+    $writeConnection = $resource->getConnection('core_write');
+    $query = "UPDATE  catalog_product_entity_int SET value=2 WHERE attribute_id=96";
+    $writeConnection->query($query);
 			}
 			else{
 				return false;
@@ -245,7 +257,7 @@ class Item {
 		// assign product to the default website
 		$product->setWebsiteIds(array(Mage::app()->getStore(true)->getWebsite()->getId()));	
 		$product->setMetaTitle($this->name);
-		$product->save();
+		
 
 		// for stock
 		$stockData = $product->getStockData();
@@ -255,8 +267,7 @@ class Item {
 		$stockData['use_config_manage_stock'] = 0;
 		$product->setStockData($stockData);
 		
-		$product->save();
-		
+		$product->save();	
 	   
 	   } catch(Exception $e) {
 			var_dump($e);
