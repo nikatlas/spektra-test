@@ -1,0 +1,94 @@
+<?
+$this->methodblock(); 
+$itemIds = $_SESSION['itemIds'];
+if( sizeof($itemIds) > 0 ){
+?> 
+<script type="text/javascript">
+var itemids = [<? foreach($itemIds as $id )echo $id.",";?>];
+var num = 0,comp = 0;
+var errors = 0 , updated = 0, created = 0,nosku = 0;
+function getItem(){
+	if( num >= itemids.length ) return;
+	
+	new Ajax.Request('<?php echo Mage::helper("adminhtml")->getUrl("adminebay/adminhtml_index/item");?>',
+	{
+	method:'post',
+	parameters: {itemid:itemids[num++]},
+	onSuccess: function(transport){
+	var data = transport.responseText || "-3";
+			if( data == "-2" )document.getElementById('errors').innerHTML = "Errors:"+ ++errors;
+		    if( data == "-1" )document.getElementById('sku').innerHTML = "No SKU:"+ ++nosku;
+		    if( data == "20" )document.getElementById('updated').innerHTML = "Updated:"+ ++updated;
+		    if( data == "10" )document.getElementById('created').innerHTML = "Created:"+ ++created;
+			document.getElementById('progress').value = ++comp;  
+			document.getElementById('perc').innerHTML = parseInt(comp*100/<? echo sizeof($itemIds);?>);
+			getItem();	
+	},
+	onFailure: function(){ 
+		document.getElementById('errors').innerHTML = "Errors:"+ ++errors;
+	 }
+	});
+} 
+function disableAllItems(){
+	new Ajax.Request('<?php echo Mage::helper("adminhtml")->getUrl("adminebay/adminhtml_index/disable");?>',
+	{
+	method:'post',
+	onSuccess: function(transport){
+	var data = transport.responseText || "-3";
+			if( data == "0" )alert("Disabled ALL Items!");
+	},
+	onFailure: function(){ alert('Couldnt Disable'); }
+	});
+}
+function enableAllItems(){
+	new Ajax.Request('<?php echo Mage::helper("adminhtml")->getUrl("adminebay/adminhtml_index/enable");?>',
+	{
+	method:'post',
+	onSuccess: function(transport){
+	var data = transport.responseText || "-3";
+			if( data == "0" )alert("Enabled ALL Items!");
+	},
+	onFailure: function(){ alert('Couldnt Enable'); }
+	});
+} 
+function startFetching(){
+    num = 0,comp = 0;
+    errors = 0 , updated = 0, created = 0, nosku = 0;
+	getItem();	
+	getItem();	
+	getItem();	
+	getItem();	
+	
+}
+
+</script> 
+<h1>
+Synchronize Ebay to Magento
+</h1><br />
+<h3>
+There were <? echo sizeof($itemIds);?> products detected!
+</h3>
+<p>
+Progress: <progress id="progress" value="0" max="<? echo sizeof($itemIds);?>"> </progress><span id="perc">0</span> %
+
+</p>
+<p id="errors">
+Errors:0
+</p><br />
+<p id="nosku">
+No SKU:0
+</p><br />
+<p id="created">
+Created:0
+</p><br /><p id="updated">
+Updated:0
+</p><br />
+<br />
+<input type="button" value="Import" onclick="startFetching();"/><br />
+<br />
+<input type="button" value="Disable All Items" onclick="javascript:disableAllItems();" /> <br />
+<input type="button" value="Enable All Items" onclick="javascript:enableAllItems();" /> 
+
+<?
+}
+?> 
