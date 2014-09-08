@@ -126,9 +126,18 @@ class Ebay_Sync_Adminhtml_IndexController extends Mage_Adminhtml_Controller_Acti
 	 $this->downloadImages();
 	
    }
-   public function layoutAction (){
-		$this->loadLayout();
-		$this->renderLayout();
+   public function testAction (){
+
+	   Mage::app()->setCurrentStore(Mage_Core_Model_App::ADMIN_STORE_ID);
+		
+		$pid = Mage::getModel('catalog/product')->getIdBySku("test");
+		$product = Mage::getModel('catalog/product')->load($pid);
+		
+		$product->setName("NAME :" . rand());
+ 	    $time_start = microtime(true);
+		$product->save();
+		$time = microtime(true) - $time_start;
+		echo "TIME : " .$time;
    }
    
    public function checkSku($sku){
