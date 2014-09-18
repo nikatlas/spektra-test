@@ -1,5 +1,7 @@
 <?
+if ( !isset($_SESSION['itemIds']) ){
 $this->methodblock(); 
+}
 $itemIds = $_SESSION['itemIds'];
 if( sizeof($itemIds) > 0 ){
 ?> 
@@ -14,10 +16,10 @@ document.onkeyup=function(e) {
 function getItem(){
 	if( num >= itemids.length ) return;
 	console.log(num);
-	new Ajax.Request('<?php echo Mage::helper("adminhtml")->getUrl("adminebay/adminhtml_index/item");?>',
+	new Ajax.Request('/ebaysync/index/item',
 	{
 	method:'post',
-	parameters: {itemid:itemids[num++],sale:document.getElementById('sale').value},
+	parameters: {itemid:itemids[num++],sale:document.getElementById('sale').value,store:document.getElementById('store').value},
 	onSuccess: function(transport){
 	var data = transport.responseText || "-3";
 			if( data == "-2" )document.getElementById('errors').innerHTML = "Errors:"+ ++errors;
@@ -35,7 +37,7 @@ function getItem(){
 	});
 } 
 function disableAllItems(){
-	new Ajax.Request('<?php echo Mage::helper("adminhtml")->getUrl("adminebay/adminhtml_index/disable");?>',
+	new Ajax.Request('/ebaysync/index/disable',
 	{
 	method:'post',
 	onSuccess: function(transport){
@@ -46,7 +48,7 @@ function disableAllItems(){
 	});
 }
 function enableAllItems(){
-	new Ajax.Request('<?php echo Mage::helper("adminhtml")->getUrl("adminebay/adminhtml_index/enable");?>',
+	new Ajax.Request('/ebaysync/index/enable',
 	{
 	method:'post',
 	onSuccess: function(transport){
@@ -56,27 +58,20 @@ function enableAllItems(){
 	onFailure: function(){ alert('Couldnt Enable'); }
 	});
 } 
-function startFetching(){
+function startFetching(){ 
 	stop_flag = false;
     num = 0,comp = 0;
     errors = 0 , updated = 0, created = 0, nosku = 0;
-	getItem();	
-	getItem();	
-	getItem();	
 	getItem();	
 }
 function resume(){
 	stop_flag = false;
     document.getElementById('resume').disabled = true;
 	document.getElementById('sale').disabled = false;
-	getItem();	
-	getItem();	
-	getItem();	
 	getItem();		
 }
 </script> 
 <h1>
-<a href="<?php echo Mage::helper("adminhtml")->getUrl("adminebay/adminhtml_index/test");?>" >PATA EDW!!!!!</a>
 Synchronize Ebay to Magento
 </h1><br />
 <h3>
@@ -99,6 +94,25 @@ Updated:0
 </p><br />
 <br />
 Price Diff:<input type="text" id="sale" value="0"/>%<br />
+<br />
+<br />
+<select id="store" >
+<?
+foreach (Mage::app()->getWebsites() as $website) {
+	$g = 1;
+    foreach ($website->getGroups() as $group) {
+		echo "<optgroup label='".$group->getName()."'>";
+        $stores = $group->getStores();
+        foreach ($stores as $store) {
+            //$store is a store object
+			echo  "<option group='".$g."' value='".$store->getId()."'>".$store->getName()."</option>";
+        }
+		echo "</optgroup>";$g++;
+    }
+}
+?>
+</select>
+<br />
 <br />
 <input type="button" value="Import" onclick="startFetching();"/><br />
 <input type="button" value="Resume" id="resume" onclick="resume();" disabled="disabled" /><br />
