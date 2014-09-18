@@ -14,60 +14,6 @@ class Ebay_Sync_Adminhtml_IndexController extends Mage_Adminhtml_Controller_Acti
 		$this->loadLayout();
 		$this->renderLayout();
 		return;
-	   //exit("ads");
-	   global $appID,$devID,$certID,$RuName,$serverUrl, $userToken,$compatabilityLevel, $siteID;
-		 initKeys();
-		 // 
-		 session_start();
-		 $ebay = new Ebay($appID,$devID,$certID,$RuName,$serverUrl, $userToken,$compatabilityLevel, $siteID);
-		 $ebay->getStuff();
-		 //echo sizeof($ebay->itemIds);
-		 //$xml = $ebay->getItem($ebay->itemIds[0]);
- 		 $xml = $ebay->getItem(221455735202);
-		 $doc = new DOMDocument();
-		 $doc->loadXML($xml);
-		
-		Mage::app()->setCurrentStore(Mage_Core_Model_App::ADMIN_STORE_ID);
-		
-		$pid = Mage::getModel('catalog/product')->getIdBySku(221490380408);
-		$new_product = Mage::getModel('catalog/product')->load($pid);
-		//$new_product->load($pid);
-	 	$new_product->setSku(221490380408);
-		
-		$new_product->setCategoryIds(array(1152));
-		//$new_product->setAttributeSetId(4); 
-		$new_product->setCurrency("GBP"); 
-		$new_product->setVisibility(4);             
-		$new_product->setQuantity(10);             
-		$new_product->setManageStock(1);             
-		$new_product->setTypeId('simple');
-		$new_product->setName($doc->getElementsByTagName("Title")->item(0)->nodeValue);
-		$new_product->setDescription('test');
-		//$new_product->setShortDescription('test');
-		$new_product->setStatus(2); 
-		$new_product->setTaxClassId(4);
-		$new_product->setWeight('');             
-		//$new_product->setCreatedAt(strtotime('now'));                   
-	
-		$new_product->setPrice(10.42);
-		$new_product->setCost(11.42);
-		$new_product->setSpecialPrice(12.42);
-		$new_product->setWebsiteIds(array(Mage::app()->getStore(true)->getWebsite()->getId()));	
-
-		$new_product->save();
-
-		
-		/*$visibility = array (
-		  'thumbnail',
-		  'small_image',
-		  'image'
-		  );
-		$filePath =  Mage::getBaseDir('media') . '/downloadable/test.jpg';
-		$new_product->addImageToMediaGallery($filePath,$visibility,true,false);
-		// call save() method to save your product with updated data
-	 	*/
-
-     echo 'test index';
    }
    
    public function disableAction (){
@@ -82,11 +28,11 @@ class Ebay_Sync_Adminhtml_IndexController extends Mage_Adminhtml_Controller_Acti
     $query = "UPDATE catalog_product_entity_int SET value='1' WHERE attribute_id=96";
     $writeConnection->query($query);
    }
-   
    public function itemAction ()
    {
 	 $itemid = $_REQUEST['itemid'];
 	 $sale = $_REQUEST['sale'];
+	 $store = $_REQUEST['store'];
 	 if ( !isset($_REQUEST['itemid']) || $itemid == "" ) {
 				 echo "-2";return; 
 	 }
@@ -99,14 +45,57 @@ class Ebay_Sync_Adminhtml_IndexController extends Mage_Adminhtml_Controller_Acti
 	 if ( !isset($item->sku) || $item->sku == "" ) {
 				 echo "-1";return; 
 	 }
-	 $cat = $item->checkCreateCategoryTree($item->categoryName);		
-	 $item->checkCreateProduct($cat,$sale);
-	 $item->downloadImages();
-		
+	 Mage::app()->setCurrentStore($store);
+	 $cat = $item->checkCreateCategoryTree($item->categoryName,$store);		
+	 $item->checkCreateProduct($cat,$sale,$store);
+	 $item->downloadImages();	
 	 echo "0";
 	 return;	
    }
-   
+   public function itemdebugAction ()
+   {
+	 $t = microtime(true);
+	 $itemid = $_REQUEST['itemid'];
+	 $sale = 0;
+	 if ( !isset($_REQUEST['itemid']) || $itemid == "" ) {
+				 echo "-2";return; 
+	 }
+	 global $appID,$devID,$certID,$RuName,$serverUrl, $userToken,$compatabilityLevel, $siteID;
+	 initKeys();
+	 session_start();
+	 $ebay = new Ebay($appID,$devID,$certID,$RuName,$serverUrl, $userToken,$compatabilityLevel, $siteID);
+	 $item = new Item();
+	 
+	 echo "INIT:".(microtime(true) - $t)."<br>";
+	 $t = microtime(true);
+	 
+	 $item = $ebay->getItemData($itemid);     
+	 if ( !isset($item->sku) || $item->sku == "" ) {
+				 echo "-1";return; 
+	 }
+	 
+	 echo "GET:".(microtime(true) - $t)."<br>";
+	 $t = microtime(true);
+	 
+	 $cat = $item->checkCreateCategoryTree($item->categoryName);		
+	 
+	 echo "CATS:".(microtime(true) - $t)."<br>";
+	 $t = microtime(true);
+	 
+	 $item->checkCreateProduct($cat,$sale);
+	 
+	 echo "Prod:".(microtime(true) - $t)."<br>";
+	 $t = microtime(true);
+	 
+	 $item->downloadImages();
+	 
+	 echo "IMG:".(microtime(true) - $t)."<br>";
+	 $t = microtime(true);
+	 
+		
+	 //echo "0";
+	 return;	
+   }
    
    public function mamethodeAction ()
    {
@@ -130,7 +119,7 @@ class Ebay_Sync_Adminhtml_IndexController extends Mage_Adminhtml_Controller_Acti
 
 	   Mage::app()->setCurrentStore(Mage_Core_Model_App::ADMIN_STORE_ID);
 		
-		$pid = Mage::getModel('catalog/product')->getIdBySku("test");
+		$pid = Mage::getModel('catalog/product')->getIdBySku("xx04852");
 		$product = Mage::getModel('catalog/product')->load($pid);
 		
 		$product->setName("NAME :" . rand());
@@ -187,28 +176,38 @@ class Item {
 			}   
    }
    // REMEMBER CAT NAMES ARE TRIMMED FOR EBAY TAG
-   public function createCategoryByName($name,$parent){
+   public function createCategoryByName($name,$parent,$store){
   	   $name = $this->clearEbayTag($name);
-   	   $parent = $this->clearEbayTag($parent);
+   	   $parent = (is_integer($parent))? $parent : $this->clearEbayTag($parent);
 	   $t = $this->checkCategoryByName($name);
+	   
 	   if( $t ){
-		   if( $t->getParentCategory()->getName() == $parent || $parent == "")
-			   return $t; 
+		   if( is_integer($parent) ){
+				if( $t->getParentCategory()->getId() == $parent )return $t;   
+		   }
+		   else{
+			   if( $t->getParentCategory()->getName() == $parent || $parent == Mage::app()->getStore($store)->getRootCategoryId())
+				   return $t; 
+		   }
 	   }
 	   try{
 			$category = Mage::getModel('catalog/category');
+			$category->setStoreId($store);
 			$category->setName($name);
 			$category->setUrlKey($name);
 			$category->setIsActive(1);
 			$category->setDisplayMode('PRODUCTS');
 			$category->setIsAnchor(1); //for active achor
-			$category->setStoreId(Mage::app()->getStore()->getId());
-			$parentCategory = Mage::getModel('catalog/category')->loadByAttribute('name',$parent);
+			if( is_integer($parent) ){
+				$parentCategory = Mage::getModel('catalog/category')->load(intval($parent));	
+			}else{
+				$parentCategory = Mage::getModel('catalog/category')->loadByAttribute('name',$parent);
+			}
 			if( $parentCategory ) {
 				$category->setPath($parentCategory->getPath());
 			}
 			else{
-				$category->setPath('1');
+				$category->setPath('1/'.$parent);
 			}
 			$category->save();
 		} catch(Exception $e) {
@@ -216,11 +215,11 @@ class Item {
 		}
 		return $category;
    }
-   public function checkCreateCategoryTree($catName){
-	   $cats = explode(':' , $catName);
-	   $t = $this->createCategoryByName($cats[0],"");
+   public function checkCreateCategoryTree($catName,$store){
+	   $cats = explode(':',$catName);
+	   $t = $this->createCategoryByName($cats[0], Mage::app()->getStore($store)->getRootCategoryId() , $store);
 	   for( $i=1;$i<sizeof($cats);$i++){
-	   	   $t = $this->createCategoryByName($cats[$i],$cats[$i-1]);
+	   	   $t = $this->createCategoryByName($cats[$i],$cats[$i-1] , $store);
 	   } 
 	   return $t;
    }
@@ -234,7 +233,7 @@ class Item {
 		$newPrice = $price*$rate;
 		return $newPrice;
    }
-   public function checkCreateProduct($cat,$sale){
+   public function checkCreateProduct($cat,$sale,$store){
 	   
 	   try{
 	   	Mage::app()->setCurrentStore(Mage_Core_Model_App::ADMIN_STORE_ID);
@@ -256,7 +255,7 @@ class Item {
 		$product->setSku($this->sku);
 		$product->setName($this->name);
 		$product->setDescription($this->description);
-		$product->setShortDescription(" ");
+		$product->setShortDescription("&nbsp;");
 		$product->setPrice($this->priceToEur($this->price,$this->currency)*((100+$sale)/100));
 		//$product->setTypeId('simple');
 		$product->setCategoryIds(array($cat->getId())); 
@@ -264,8 +263,10 @@ class Item {
 		$product->setTaxClassId(2); // taxable goods
 		$product->setVisibility(4); // catalog, search
 		$product->setStatus(1); // enabled
+		$product->setPromotion(0); // enabled
+		$product->setDesignstyle(11); // enabled
 		// assign product to the default website
-		$product->setWebsiteIds(array(Mage::app()->getStore(true)->getWebsite()->getId()));	
+		$product->setWebsiteIds(array($store));	
 		$product->setMetaTitle($this->name);
 		
 
@@ -278,7 +279,6 @@ class Item {
 		$product->setStockData($stockData);
 		
 		$product->save();	
-	   
 	   } catch(Exception $e) {
 			var_dump($e);
 	   }
@@ -290,6 +290,7 @@ class Item {
 		return	 false;
    }
    public function downloadImages(){
+	   //try{
        $pid = Mage::getModel('catalog/product')->getIdBySku($this->sku);
 	   $product = Mage::getModel('catalog/product')->load($pid); 
 
@@ -310,6 +311,10 @@ class Item {
 			$product->addImageToMediaGallery($filepath, $mediaAttribute, false, false);
 	   }
 	   $product->save();
+	   //}
+	   //catch(Exception $e ){
+			//var_dump($e);
+	   //}
    }
 }
 ?>

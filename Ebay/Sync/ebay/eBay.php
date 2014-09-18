@@ -101,10 +101,8 @@ class Ebay {
     }
 	public function getItemData($itemId){
 			 $xml = $this->getItem($itemId);
-			 //echo $xml;
 			 $doc = new DOMDocument();
 			 $desdoc = new DOMDocument();
-			 //echo $xml;
 			 $doc->loadXML($xml);
 			 $desdoc->loadHTML($doc->getElementsByTagName("Description")->item(0)->nodeValue);
 			 // GET DESCRIPTION DIV
@@ -115,14 +113,12 @@ class Ebay {
 				break;
 			 }
 			 $descr_str = $desdoc->saveHTML($des);
-			 ////////////////////////
 			 // GET STYLES 
 			 $style_str = "";
 			 $styles = $desdoc->getElementsByTagName("style");
 			 foreach ( $styles as $style ){
 				$style_str .= $desdoc->saveHTML($style);
 			 }
-			 ////////////////////////
 			 // GET Scripts
 			 $script_str = "";
 			 $scripts = $desdoc->getElementsByTagName("script");
@@ -138,6 +134,7 @@ class Ebay {
 			 $item->quantity = $doc->getElementsByTagName("Quantity")->item(0)->nodeValue;
  			 $item->categoryId = $doc->getElementsByTagName("CategoryID")->item(0)->nodeValue;
 			 $item->categoryName = $doc->getElementsByTagName("CategoryName")->item(0)->nodeValue;
+			 $item->itemid = $itemId;
 			 $pictures = $doc->getElementsByTagName("PictureURL");
 			 $item->pictures = array();
 			 foreach( $pictures as $pic ) {
@@ -328,7 +325,7 @@ class Ebay {
 			$requestXmlBody = '<?xml version="1.0" encoding="utf-8"?>
 								<GetItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">
 								  <RequesterCredentials>
-									<eBayAuthToken>'.$_SESSION['userToken'].'</eBayAuthToken>
+									<eBayAuthToken>'.$this->userToken.'</eBayAuthToken>
 								  </RequesterCredentials>
 								  <Version>'.$this->compatabilityLevel.'</Version>
 								  <IncludeItemSpecifics>true</IncludeItemSpecifics>
@@ -364,7 +361,7 @@ class Ebay {
                             'EntriesPerPage'=>  $EntriesPerPage,
                             'pageNumber'    =>  $pageNumber ) ;
         
-		if ( !isset($_SESSION['sesId']) || $_SESSION['sesId'] == "" ){
+		if (  (!isset($_SESSION['sesId']) || $_SESSION['sesId'] == "") && $this->userToken == '' ){
 			$sessionIdXml = $this->getSessionId($this->runame) ;
 			$sessionIdResponse = $this->parseXml($sessionIdXml);
 			$sessionId = $sessionIdResponse->getElementsByTagName('SessionID')->item(0)->nodeValue;
