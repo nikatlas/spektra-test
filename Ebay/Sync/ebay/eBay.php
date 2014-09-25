@@ -313,6 +313,19 @@ class Ebay {
             return $responseXml;
 
     }	
+	public function GetStoreCategories(){
+            $session = new eBaySession('GetStore',$this);
+			$reqxml = '<?xml version="1.0" encoding="utf-8"?>
+							<RequesterCredentials>
+									<eBayAuthToken>'.$this->userToken.'</eBayAuthToken>
+								  </RequesterCredentials>					
+						<GetStoreRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+						  <CategoryStructureOnly>true</CategoryStructureOnly>
+						  <Version>'.$this->compatibilityLevel.'</Version>
+						</GetStoreRequest>';
+			$responseXml = $session->sendHttpRequest($reqxml);
+			return $responseXml;
+	}
     public function GetItem($itemId)
     {
             $session = new eBaySession('GetItem',$this);
@@ -339,7 +352,7 @@ class Ebay {
 			
             //Create a new eBay session with all details pulled in from included keys.php
             $responseXml = $session->sendHttpRequest($requestXmlBody);
-            
+//            echo $responseXml;
             return $responseXml;
 
     }    

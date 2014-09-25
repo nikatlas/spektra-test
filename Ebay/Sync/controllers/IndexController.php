@@ -28,6 +28,14 @@ class Ebay_Sync_IndexController extends Mage_Core_Controller_Front_Action
     $query = "UPDATE catalog_product_entity_int SET value='1' WHERE attribute_id=96";
     $writeConnection->query($query);
    }
+   public function storeAction(){
+	   echo "!";
+	   global $appID,$devID,$certID,$RuName,$serverUrl, $userToken,$compatabilityLevel, $siteID;
+		 initKeys();
+		 session_start();
+	   	 $ebay = new Ebay($appID,$devID,$certID,$RuName,$serverUrl, $userToken,$compatabilityLevel, $siteID);
+		 echo $ebay->GetStoreCategories();   
+   }
    public function itemAction ()
    {
 	 $itemid = $_REQUEST['itemid'];
@@ -235,7 +243,7 @@ class Item {
 		$to = Mage::app()->getStore()->getCurrentCurrencyCode();
 		$allowedCurrencies = Mage::getModel('directory/currency')->getConfigAllowCurrencies();   
 		$currencyRates = Mage::getModel('directory/currency')->getCurrencyRates('EUR', array_values($allowedCurrencies));
-		$rate = 1/$currencyRates['USD'];
+		$rate = 1/$currencyRates[$from];
 		$newPrice = $price*$rate;
 		return $newPrice;
    }
