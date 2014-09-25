@@ -98,9 +98,57 @@ class Ebay {
         $responseDoc = new \DomDocument();
         $responseDoc->loadXML($responseXml);
         return $responseDoc;
-    }
+    }	
+	public function grabCategoryIDFromStore($doc1){
+		if ( sizeof( $doc1->getElementsByTagName("StoreCategoryID") ) == 0 ){
+					return $doc1->getElementsByTagName("CategoryID")->item(0)->nodeValue;
+		}
+		return $doc1->getElementsByTagName("StoreCategoryID")->item(0)->nodeValue;
+	}
+	public function grabCategoryFromStore($doc1){
+			global $appID,$devID,$certID,$RuName,$serverUrl, $userToken,$compatabilityLevel, $siteID;
+			initKeys();
+			session_start();
+			if ( sizeof( $doc1->getElementsByTagName("StoreCategoryID") ) == 0 ){
+					return $doc1->getElementsByTagName("CategoryName")->item(0)->nodeValue;
+			}
+			$reqID = $doc1->getElementsByTagName("StoreCategoryID")->item(0)->nodeValue;
+
+			$ebay = new Ebay($appID,$devID,$certID,$RuName,$serverUrl, $userToken,$compatabilityLevel, $siteID);
+			$xml = $ebay->GetStoreCategories(); 
+			 
+			$doc = new DOMDocument();
+			$doc->loadXML($xml);
+
+			$found = false;
+			
+			$chcat = $doc->getElementsByTagName("CustomCategory");
+			foreach( $chcat as $cat ){
+				 if( $cat->getElementsByTagName("CategoryID")->item(0)->nodeValue  == $reqID ){
+					$name = $cat->getElementsByTagName("Name")->item(0)->nodeValue;
+					$found = true;
+					break; 
+				 }
+			 }
+			 if( !$found ){
+				$chcat = $doc->getElementsByTagName("ChildCategory");
+				foreach( $chcat as $cat ){
+					 if( $cat->getElementsByTagName("CategoryID")->item(0)->nodeValue  == $reqID ){
+						$name = $cat->getElementsByTagName("Name")->item(0)->nodeValue;
+						$par=$cat->parentNode;
+						while ( $par->nodeName == "ChildCategory" ){ 
+							$name = $par->getElementsByTagName("Name")->item(0)->nodeValue.":".$name;	
+							$par=$par->parentNode;
+						}
+						$name = $par->getElementsByTagName("Name")->item(0)->nodeValue.":".$name;	
+						break; 
+					 }
+				 }
+ 			 }
+			 return $name;
+	}
 	public function getItemData($itemId){
-			 $xml = $this->getItem($itemId);
+			 $xml = $this->getItem($itemId);			 
 			 $doc = new DOMDocument();
 			 $desdoc = new DOMDocument();
 			 $doc->loadXML($xml);
@@ -126,14 +174,21 @@ class Ebay {
 				$script_str .= $desdoc->saveHTML($script);
 			 }
 			 ////////////////////////
+			 
 			 $item = new Item();
+			 
 			 $item->description = $script_str . " " .$style_str . " " .$descr_str;
+			 
+			 
 			 $item->setSku($doc->getElementsByTagName("SKU")->item(0)->nodeValue);
 			 $item->price = $doc->getElementsByTagName("CurrentPrice")->item(0)->nodeValue;
+			 echo "> ".sizeof($doc->getElementsByTagName("CurrentPrice")->item(0)->attributes) ;
 			 $item->currency = $doc->getElementsByTagName("CurrentPrice")->item(0)->attributes->getNamedItem("currencyID")->nodeValue;
+			 exit("!");
 			 $item->quantity = $doc->getElementsByTagName("Quantity")->item(0)->nodeValue;
- 			 $item->categoryId = $doc->getElementsByTagName("CategoryID")->item(0)->nodeValue;
-			 $item->categoryName = $doc->getElementsByTagName("CategoryName")->item(0)->nodeValue;
+ 			 $item->categoryId = $this->grabCategoryIDFromStore($doc);
+			 //$item->categoryName = $doc->getElementsByTagName("CategoryName")->item(0)->nodeValue;
+			 $item->categoryName = $this->grabCategoryFromStore($doc);
 			 $item->itemid = $itemId;
 			 $pictures = $doc->getElementsByTagName("PictureURL");
 			 $item->pictures = array();
@@ -316,13 +371,12 @@ class Ebay {
 	public function GetStoreCategories(){
             $session = new eBaySession('GetStore',$this);
 			$reqxml = '<?xml version="1.0" encoding="utf-8"?>
-							<RequesterCredentials>
-									<eBayAuthToken>'.$this->userToken.'</eBayAuthToken>
-								  </RequesterCredentials>					
-						<GetStoreRequest xmlns="urn:ebay:apis:eBLBaseComponents">
-						  <CategoryStructureOnly>true</CategoryStructureOnly>
-						  <Version>'.$this->compatibilityLevel.'</Version>
-						</GetStoreRequest>';
+							<GetStoreRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+							  <RequesterCredentials>
+								<eBayAuthToken>'.$this->userToken.'</eBayAuthToken>
+							  </RequesterCredentials>
+							  <CategoryStructureOnly>true</CategoryStructureOnly>
+							</GetStoreRequest>';
 			$responseXml = $session->sendHttpRequest($reqxml);
 			return $responseXml;
 	}

@@ -34,7 +34,32 @@ class Ebay_Sync_IndexController extends Mage_Core_Controller_Front_Action
 		 initKeys();
 		 session_start();
 	   	 $ebay = new Ebay($appID,$devID,$certID,$RuName,$serverUrl, $userToken,$compatabilityLevel, $siteID);
-		 echo $ebay->GetStoreCategories();   
+		 $xml = $ebay->GetStoreCategories(); 
+		 echo $xml ; 
+		 
+		 $doc = new DOMDocument();
+		 $doc->loadXML($xml);
+		 
+		 //REQ ID
+		 $reqID = 5996711015;
+		 ///////
+		 echo "<BR><BR>HERE:<BR>";
+		 
+		 $chcat = $doc->getElementsByTagName("ChildCategory");
+		 foreach( $chcat as $cat ){
+			 if( $cat->getElementsByTagName("CategoryID")->item(0)->nodeValue  == $reqID ){
+				$name = $cat->getElementsByTagName("Name")->item(0)->nodeValue;
+				$par=$cat->parentNode;
+				while ( $par->nodeName == "ChildCategory" ){ 
+					$name = $par->getElementsByTagName("Name")->item(0)->nodeValue.":".$name;	
+					$par=$par->parentNode;
+				}
+				$name = $par->getElementsByTagName("Name")->item(0)->nodeValue.":".$name;	
+				break; 
+			 }
+		 }
+		 echo $name;
+
    }
    public function itemAction ()
    {
