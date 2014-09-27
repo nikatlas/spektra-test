@@ -2,6 +2,7 @@
 require_once ( Mage::getBaseDir('code').'/local/Ebay/Sync/ebay/eBay.php' );
 include_once( Mage::getBaseDir('code').'local/Ebay/Sync/ebay/keys.php' );
 
+
 function microtime_float()
 {
     list($usec, $sec) = explode(" ", microtime());
@@ -69,6 +70,7 @@ class Ebay_Sync_IndexController extends Mage_Core_Controller_Front_Action
 	 if ( !isset($_REQUEST['itemid']) || $itemid == "" ) {
 				 echo "-2";return; 
 	 }
+
 	 global $appID,$devID,$certID,$RuName,$serverUrl, $userToken,$compatabilityLevel, $siteID;
 	 initKeys();
 	 session_start();

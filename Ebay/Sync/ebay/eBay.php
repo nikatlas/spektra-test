@@ -114,12 +114,18 @@ class Ebay {
 			}
 			$reqID = $doc1->getElementsByTagName("StoreCategoryID")->item(0)->nodeValue;
 
-			$ebay = new Ebay($appID,$devID,$certID,$RuName,$serverUrl, $userToken,$compatabilityLevel, $siteID);
-			$xml = $ebay->GetStoreCategories(); 
-			 
-			$doc = new DOMDocument();
-			$doc->loadXML($xml);
-
+			if( !isset($_SESSION['storeDoc1'])  ){
+				$ebay = new Ebay($appID,$devID,$certID,$RuName,$serverUrl, $userToken,$compatabilityLevel, $siteID);
+				$xml = $ebay->GetStoreCategories(); 
+				$_SESSION['storeDoc1'] = $xml;
+				$doc = new DOMDocument();
+				$doc->loadXML($xml);
+			}
+			else{
+				$xml = $_SESSION['storeDoc1'];		
+				$doc = new DOMDocument();
+				$doc->loadXML($xml);
+			}
 			$found = false;
 			
 			$chcat = $doc->getElementsByTagName("CustomCategory");
@@ -149,6 +155,7 @@ class Ebay {
 	}
 	public function getItemData($itemId){
 			 $xml = $this->getItem($itemId);			 
+			 //echo $xml;
 			 $doc = new DOMDocument();
 			 $desdoc = new DOMDocument();
 			 $doc->loadXML($xml);
@@ -182,9 +189,9 @@ class Ebay {
 			 
 			 $item->setSku($doc->getElementsByTagName("SKU")->item(0)->nodeValue);
 			 $item->price = $doc->getElementsByTagName("CurrentPrice")->item(0)->nodeValue;
-			 echo "> ".sizeof($doc->getElementsByTagName("CurrentPrice")->item(0)->attributes) ;
+			 //echo "> ".sizeof($doc->getElementsByTagName("CurrentPrice")->item(0)->attributes) ;
 			 $item->currency = $doc->getElementsByTagName("CurrentPrice")->item(0)->attributes->getNamedItem("currencyID")->nodeValue;
-			 exit("!");
+			 //exit("!");
 			 $item->quantity = $doc->getElementsByTagName("Quantity")->item(0)->nodeValue;
  			 $item->categoryId = $this->grabCategoryIDFromStore($doc);
 			 //$item->categoryName = $doc->getElementsByTagName("CategoryName")->item(0)->nodeValue;

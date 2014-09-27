@@ -36,7 +36,7 @@ class eBaySession
                 $this->siteID = $ebay->siteID;
                 $this->requestToken = $ebay->userToken;
                 $this->serverUrl = $ebay->serverUrl;
-                $this->runame = $ebay->RuName;
+                $this->runame = $ebay->runame;
 	}
 	
 	

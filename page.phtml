@@ -1,6 +1,9 @@
 <?
-if ( !isset($_SESSION['itemIds']) ){
-$this->methodblock(); 
+//echo "!".">".(isset($_SESSION['itemIds'])?"true":"false");
+//echo "<BR>".sizeof($_SESSION['itemIds']);
+
+if ( !isset($_SESSION['itemIds']) || sizeof($_SESSION['itemIds']) <= 0 ){
+	$this->methodblock(); 
 }
 $itemIds = $_SESSION['itemIds'];
 if( sizeof($itemIds) > 0 ){
@@ -15,17 +18,18 @@ document.onkeyup=function(e) {
 };
 function getItem(){
 	if( num >= itemids.length ) return;
-	console.log(num);
+//	console.log(num);
 	new Ajax.Request('/ebaysync/index/item',
 	{
 	method:'post',
 	parameters: {itemid:itemids[num++],sale:document.getElementById('sale').value,store:document.getElementById('store').value},
 	onSuccess: function(transport){
 	var data = transport.responseText || "-3";
-			if( data == "-2" )document.getElementById('errors').innerHTML = "Errors:"+ ++errors;
-		    if( data == "-1" )document.getElementById('sku').innerHTML = "No SKU:"+ ++nosku;
-		    if( data == "20" )document.getElementById('updated').innerHTML = "Updated:"+ ++updated;
-		    if( data == "10" )document.getElementById('created').innerHTML = "Created:"+ ++created;
+		    if( data == "-2" )document.getElementById('errors').innerHTML = "Errors:"+ ++errors;
+		    else if( data == "-1" )document.getElementById('sku').innerHTML = "No SKU:"+ ++nosku;
+		    else if( data == "20" )document.getElementById('updated').innerHTML = "Updated:"+ ++updated;
+		    else if( data == "10" )document.getElementById('created').innerHTML = "Created:"+ ++created;
+		    else console.log("LOG: " + data);
 			document.getElementById('progress').value = ++comp;  
 			document.getElementById('perc').innerHTML = parseInt(comp*100/<? echo sizeof($itemIds);?>);
 			if( stop_flag == false )getItem();	
@@ -58,7 +62,7 @@ function enableAllItems(){
 	onFailure: function(){ alert('Couldnt Enable'); }
 	});
 } 
-function startFetching(){ 
+function startFetching(){
 	stop_flag = false;
     num = 0,comp = 0;
     errors = 0 , updated = 0, created = 0, nosku = 0;
