@@ -84,7 +84,7 @@ class Ebay_Sync_IndexController extends Mage_Core_Controller_Front_Action
 	 $cat = $item->checkCreateCategoryTree($item->categoryName,$store);		
 	 $item->checkCreateProduct($cat,$sale,$store);
 	 $item->downloadImages();	
-	 echo "0";
+	 echo "0&".$item->sku;
 	 return;	
    }
    public function itemdebugAction ()
@@ -304,7 +304,7 @@ class Item {
 		$product->setTaxClassId(2); // taxable goods
 		$product->setVisibility(4); // catalog, search
 		$product->setStatus(1); // enabled
-		$product->setPromotion(0); // enabled
+		//$product->setPromotion(0); // enabled
 		$product->setDesignstyle(11); // enabled
 		// assign product to the default website
 		$product->setWebsiteIds(array($store));	

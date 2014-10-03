@@ -9,10 +9,13 @@ $itemIds = $_SESSION['itemIds'];
 if( sizeof($itemIds) > 0 ){
 ?> 
 <script type="text/javascript">
-var itemids = [<? foreach($itemIds as $id )echo $id.",";?>];
+var itemids = [<? foreach($itemIds as $id )echo $id.","; ?>];
 var num = 0,comp = 0;
 var errors = 0 , updated = 0, created = 0,nosku = 0;
 var stop_flag = true;
+var doubles = 0;
+var DSKUS = [];
+var SKUS = [];
 document.onkeyup=function(e) {
   if (e.keyCode == 27) { if(stop_flag)return; document.getElementById('resume').disabled = false;document.getElementById('sale').disabled = false; stop_flag = true; }   // esc
 };
@@ -25,10 +28,16 @@ function getItem(){
 	parameters: {itemid:itemids[num++],sale:document.getElementById('sale').value,store:document.getElementById('store').value},
 	onSuccess: function(transport){
 	var data = transport.responseText || "-3";
-		    if( data == "-2" )document.getElementById('errors').innerHTML = "Errors:"+ ++errors;
-		    else if( data == "-1" )document.getElementById('sku').innerHTML = "No SKU:"+ ++nosku;
-		    else if( data == "20" )document.getElementById('updated').innerHTML = "Updated:"+ ++updated;
-		    else if( data == "10" )document.getElementById('created').innerHTML = "Created:"+ ++created;
+		    if( data.search("-2") == 0 )document.getElementById('errors').innerHTML = "Errors:"+ ++errors;
+		    else if( data.search("-1") == 0 )document.getElementById('sku').innerHTML = "No SKU:"+ ++nosku;
+		    else if( data.search("20")  == 0 ){
+				if( SKUS.indexOf(data.slice(3,data.length)) > -1 ){
+					 DSKUS.push(data.slice(3,data.length)); document.getElementById('doubles').innerHTML = "Doubles:"+ ++doubles;
+				}else{ 
+					 SKUS.push(data.slice(3,data.length)); document.getElementById('updated').innerHTML = "Updated:"+ ++updated; 
+				}
+			}
+		    else if( data.search("10") == 0 )document.getElementById('created').innerHTML = "Created:"+ ++created;
 		    else console.log("LOG: " + data);
 			document.getElementById('progress').value = ++comp;  
 			document.getElementById('perc').innerHTML = parseInt(comp*100/<? echo sizeof($itemIds);?>);
@@ -65,7 +74,9 @@ function enableAllItems(){
 function startFetching(){
 	stop_flag = false;
     num = 0,comp = 0;
-    errors = 0 , updated = 0, created = 0, nosku = 0;
+    errors = 0 , updated = 0, created = 0, nosku = 0;doubles = 0;
+	SKUS = [];
+	DSKUS = [];
 	getItem();	
 }
 function resume(){
@@ -93,8 +104,12 @@ No SKU:0
 </p><br />
 <p id="created">
 Created:0
-</p><br /><p id="updated">
+</p><br />
+<p id="updated">
 Updated:0
+</p><br />
+<p id="doubles">
+Doubles:0
 </p><br />
 <br />
 Price Diff:<input type="text" id="sale" value="0"/>%<br />
