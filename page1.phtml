@@ -1,0 +1,196 @@
+<?
+//echo "!".">".(isset($_SESSION['itemIds'])?"true":"false");
+//echo "<BR>".sizeof($_SESSION['itemIds']);
+
+if ( !isset($_SESSION['newItemIds']) || sizeof($_SESSION['newItemIds']) <= 0 ){
+	$this->methodblock(); 
+}
+$itemIds = $_SESSION['newItemIds'];
+if( sizeof($itemIds) > 0 ){
+?> 
+<script type="text/javascript">
+var itemids = [<? foreach($itemIds as $id )echo $id.","; ?>];
+var num = 0,comp = 0;
+var errors = 0 , updated = 0, created = 0,nosku = 0;
+var stop_flag = true;
+var doubles = 0;
+var DSKUS = [];
+var SKUS = [];
+document.onkeyup=function(e) {
+  if (e.keyCode == 27) { if(stop_flag)return; document.getElementById('resume').disabled = false;document.getElementById('sale').disabled = false; stop_flag = true; }   // esc
+};
+function getItem(){
+	if( num >= itemids.length ) return;
+//	console.log(num);
+	new Ajax.Request('/ebaysync/index/item',
+	{
+	method:'post',
+	parameters: {itemid:itemids[num++],sale:document.getElementById('sale').value,store:document.getElementById('store').value},
+	onSuccess: function(transport){
+	var data = transport.responseText || "-3";
+		    if( data.search("-2") == 0 )document.getElementById('errors').innerHTML = "Errors:"+ ++errors;
+		    else if( data.search("-1") == 0 )document.getElementById('sku').innerHTML = "No SKU:"+ ++nosku;
+		    else if( data.search("20")  == 0 ){
+				if( SKUS.indexOf(data.slice(3,data.length)) > -1 ){
+					 DSKUS.push(data.slice(3,data.length)); document.getElementById('doubles').innerHTML = "Doubles:"+ ++doubles;
+				}else{ 
+					 SKUS.push(data.slice(3,data.length)); document.getElementById('updated').innerHTML = "Updated:"+ ++updated; 
+				}
+			}
+		    else if( data.search("10") == 0 )document.getElementById('created').innerHTML = "Created:"+ ++created;
+		    else console.log("LOG: " + data);
+			document.getElementById('progress').value = ++comp;  
+			document.getElementById('perc').innerHTML = parseInt(comp*100/<? echo sizeof($itemIds);?>);
+			if( stop_flag == false )getItem();	
+	},
+	onFailure: function(){  
+		document.getElementById('errors').innerHTML = "Errors:"+ ++errors;
+		if( stop_flag == false )getItem();	
+	 }
+	});
+} 
+function disableAllItems(){
+	new Ajax.Request('/ebaysync/index/disable',
+	{
+	method:'post',
+	onSuccess: function(transport){
+	var data = transport.responseText || "-3";
+			if( data == "0" )alert("Disabled ALL Items!");
+	},
+	onFailure: function(){ alert('Couldnt Disable'); }
+	});
+}
+function enableAllItems(){
+	new Ajax.Request('/ebaysync/index/enable',
+	{
+	method:'post',
+	onSuccess: function(transport){
+	var data = transport.responseText || "-3";
+			if( data == "0" )alert("Enabled ALL Items!");
+	},
+	onFailure: function(){ alert('Couldnt Enable'); }
+	});
+} 
+function enableAllCategories(){
+	new Ajax.Request('/ebaysync/index/enableCategories',
+	{
+	method:'post',
+	onSuccess: function(transport){
+	var data = transport.responseText || "-3";
+			if( data == "0" )alert("Enabled ALL Categories!");
+	},
+	onFailure: function(){ alert('Couldnt Enable'); }
+	});
+} 
+function disableAllCategories(){
+	new Ajax.Request('/ebaysync/index/disableCategories',
+	{
+	method:'post',
+	onSuccess: function(transport){
+	var data = transport.responseText || "-3";
+			if( data == "0" )alert("Disabled ALL Categories!");
+	},
+	onFailure: function(){ alert('Couldnt Disable'); }
+	});
+}
+function deleteInactiveItems(){
+	if( !confirm("Are you sure ? You are going to delete all inactive Items!") )return ;
+	new Ajax.Request('/ebaysync/index/deleteInactive',
+	{
+	method:'post',
+	onSuccess: function(transport){
+	var data = transport.responseText || "-3";
+			if( data == "0" )alert("Disabled ALL Items!");
+	},
+	onFailure: function(){ alert('Couldnt Delete'); }
+	});
+}
+function deleteInactiveCategories(){
+	if( !confirm("Are you sure ? You are going to delete all inactive Categories!") )return ;
+	new Ajax.Request('/ebaysync/index/deleteInactiveCategories',
+	{
+	method:'post',
+	onSuccess: function(transport){
+	var data = transport.responseText || "-3";
+			if( data == "0" )alert("Disabled ALL Items!");
+	},
+	onFailure: function(){ alert('Couldnt Delete'); }
+	});
+}
+function startFetching(){
+	stop_flag = false;
+    num = 0,comp = 0;
+    errors = 0 , updated = 0, created = 0, nosku = 0;doubles = 0;
+	SKUS = [];
+	DSKUS = [];
+	getItem();	
+}
+function resume(){
+	stop_flag = false;
+    document.getElementById('resume').disabled = true;
+	document.getElementById('sale').disabled = false;
+	getItem();		
+}
+</script> 
+<h1>
+Synchronize Ebay to Magento
+</h1><br />
+<h3>
+There were <? echo sizeof($itemIds);?> products detected!
+</h3>
+<p>
+Progress: <progress id="progress" value="0" max="<? echo sizeof($itemIds);?>"> </progress><span id="perc">0</span> %
+
+</p>
+<p id="errors">
+Errors:0
+</p><br />
+<p id="nosku">
+No SKU:0
+</p><br />
+<p id="created">
+Created:0
+</p><br />
+<p id="updated">
+Updated:0
+</p><br />
+<p id="doubles">
+Doubles:0
+</p><br />
+<br />
+Price Diff:<input type="text" id="sale" value="0"/>%<br />
+<br />
+<br />
+<select id="store" >
+<?
+foreach (Mage::app()->getWebsites() as $website) {
+	$g = 1;
+    foreach ($website->getGroups() as $group) {
+		echo "<optgroup label='".$group->getName()."'>";
+        $stores = $group->getStores();
+        foreach ($stores as $store) {
+            //$store is a store object
+			echo  "<option group='".$g."' value='".$store->getId()."'>".$store->getName()."</option>";
+        }
+		echo "</optgroup>";$g++;
+    }
+}
+?>
+</select>
+<br />
+<br />
+<input type="button" value="Import" onclick="startFetching();"/><br />
+<input type="button" value="Resume" id="resume" onclick="resume();" disabled="disabled" /><br />
+<br />
+<input type="button" value="Disable All Items" onclick="javascript:disableAllItems();" /> <br />
+<input type="button" value="Enable All Items" onclick="javascript:enableAllItems();" /> <br />
+<br />
+<input type="button" value="Disable All Categories" onclick="javascript:disableAllCategories();" /> <br />
+<input type="button" value="Enable All Categories" onclick="javascript:enableAllCategories();" /> <br />
+<br />
+<input type="button" value="Delete Inactive Items" onclick="javascript:deleteInactiveItems();" /> <br />
+<input type="button" value="Delete Inactive Categories" onclick="javascript:deleteInactiveCategories();" /> <br />
+
+<?
+}
+?> 

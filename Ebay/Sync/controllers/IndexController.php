@@ -16,19 +16,169 @@ class Ebay_Sync_IndexController extends Mage_Core_Controller_Front_Action
 		$this->renderLayout();
 		return;
    }
-   
-   public function disableAction (){
+   public function getNewAction(){
+		$this->loadLayout();
+		$this->renderLayout();
+   }
+   public function createActivityAttributeAction () {
+    require_once "app/Mage.php";
+
+    Mage::app()->setCurrentStore(Mage::getModel('core/store')->load(Mage_Core_Model_App::ADMIN_STORE_ID));
+
+	$resource = Mage::getSingleton('core/resource');
+    $readConnection = $resource->getConnection('core_read');
+    $query = "SELECT count(*) AS `max` FROM eav_attribute WHERE attribute_code='activity'";
+    $results = $readConnection->fetchAll($query);
+	if( $results[0]['max'] > 0 ){
+		echo ("[!] The attribute is already installed!");	
+		return;
+	}
+	
+    $installer = new Mage_Sales_Model_Mysql4_Setup;
+	
+	$installer->startSetup();
+    // change details below:
+    $attribute  = array(
+        'type' => 'int',
+        'label'=> 'Activity stability',
+        'input' => 'text',
+        'global' => Mage_Catalog_Model_Resource_Eav_Attribute::SCOPE_GLOBAL,
+        'visible' => true,
+        'required' => false,
+        'user_defined' => true,
+        'default' => "1",
+        'group' => "General Information"
+    );
+
+    $installer->addAttribute('catalog_category', 'activity', $attribute);
+
+    $installer->endSetup();   
+	echo "[*] Adding attribute to existing nodes...  <br>";
+	
+	$categories = Mage::getModel('catalog/category')->getCollection()->load();
+	foreach($categories as $cat)$cat->save();
+	echo "[*] Installed";	
+   }
+   public function createActivityProductAttributeAction () {
+		require_once "app/Mage.php";
+	
+		Mage::app()->setCurrentStore(Mage::getModel('core/store')->load(Mage_Core_Model_App::ADMIN_STORE_ID));
+	
+		$resource = Mage::getSingleton('core/resource');
+		$readConnection = $resource->getConnection('core_read');
+		$query = "SELECT count(*) AS `max` FROM eav_attribute WHERE attribute_code='activity_product'";
+		$results = $readConnection->fetchAll($query);
+		if( $results[0]['max'] > 0 ){
+			echo ("[!] The attribute is already installed!");	
+			return;
+		}
+		
+		$installer = new Mage_Sales_Model_Mysql4_Setup;
+		
+		$installer->startSetup();
+		// change details below:
+		$attribute  = array(
+			'type' => 'int',
+			'label'=> 'Activity stability',
+			'input' => 'text',
+			'global' => Mage_Catalog_Model_Resource_Eav_Attribute::SCOPE_GLOBAL,
+			'visible' => true,
+			'required' => false,
+			'user_defined' => true,
+			'default' => "1",
+			'group' => "General"
+		);
+	
+		$installer->addAttribute('catalog_product', 'activity_product', $attribute);
+	
+		$installer->endSetup();   
+		echo "[*] Adding attribute to existing nodes...  <br>";
+		
+		$categories = Mage::getModel('catalog/product')->getCollection()->load();
+		foreach($categories as $cat)$cat->save();
+		echo "[*] Installed";	
+   }
+   public function disableCategoriesAction (){
+	$resource = Mage::getSingleton('core/resource');
+    $readConnection = $resource->getConnection('core_read');
+    $query = "SELECT attribute_id FROM eav_attribute WHERE attribute_code='activity'";
+    $results = $readConnection->fetchAll($query);
+	if( sizeof( $results) == 0 ) {
+		echo "Activity attribute doesnt exist!";return;	
+	}	
     $resource = Mage::getSingleton('core/resource');
     $writeConnection = $resource->getConnection('core_write');
-    $query = "UPDATE  catalog_product_entity_int SET value='2' WHERE attribute_id=96";
+    $query = "UPDATE  catalog_category_entity_int SET value='0' WHERE attribute_id=".$results[0]['attribute_id'];
     $writeConnection->query($query);
+	echo "0";
+   }
+   public function enableCategoriesAction (){
+	$resource = Mage::getSingleton('core/resource');
+    $readConnection = $resource->getConnection('core_read');
+    $query = "SELECT attribute_id FROM eav_attribute WHERE attribute_code='activity'";
+    $results = $readConnection->fetchAll($query);
+	if( sizeof( $results) == 0 ) {
+		echo "Activity attribute doesnt exist!";return;	
+	}
+    $resource = Mage::getSingleton('core/resource');
+    $writeConnection = $resource->getConnection('core_write');
+    $query = "UPDATE  catalog_category_entity_int SET value='1' WHERE attribute_id=".$results[0]['attribute_id'];
+    $writeConnection->query($query);
+	echo "0";
+   }
+   public function disableAction (){
+	$resource = Mage::getSingleton('core/resource');
+    $readConnection = $resource->getConnection('core_read');
+    $query = "SELECT attribute_id FROM eav_attribute WHERE attribute_code='activity_product'";
+    $results = $readConnection->fetchAll($query);
+	if( sizeof( $results) == 0 ) {
+		echo "Activity attribute doesnt exist!";return;	
+	}
+	
+    $resource = Mage::getSingleton('core/resource');
+    $writeConnection = $resource->getConnection('core_write');
+    $query = "UPDATE catalog_product_entity_int SET value='2' WHERE attribute_id=".$results[0]['attribute_id'];
+    $writeConnection->query($query);
+	echo "0";
    }
    public function enableAction (){
 	$resource = Mage::getSingleton('core/resource');
+    $readConnection = $resource->getConnection('core_read');
+    $query = "SELECT attribute_id FROM eav_attribute WHERE attribute_code='activity_product'";
+    $results = $readConnection->fetchAll($query);
+	if( sizeof( $results) == 0 ) {
+		echo "Activity attribute doesnt exist!";return;	
+	}
+	
+	$resource = Mage::getSingleton('core/resource');
     $writeConnection = $resource->getConnection('core_write');
-    $query = "UPDATE catalog_product_entity_int SET value='1' WHERE attribute_id=96";
+    $query = "UPDATE catalog_product_entity_int SET value='1' WHERE attribute_id=".$results[0]['attribute_id'];
     $writeConnection->query($query);
+	echo "0";
    }
+   
+   public function deleteInactiveCategoriesAction(){
+	    Mage::app()->setCurrentStore(Mage::getModel('core/store')->load(Mage_Core_Model_App::ADMIN_STORE_ID));
+   		$categories = Mage::getModel('catalog/category')->getCollection()
+						->addAttributeToFilter('activity', 0);
+		$categories->load();
+		foreach( $categories as $cat ) {
+			//echo " <BR> [!] NAME : " . $cat->getName() . " !! " ;	
+			$cat->delete();
+		}
+		echo "0";
+   }
+   public function deleteInactiveAction(){
+	    Mage::app()->setCurrentStore(Mage::getModel('core/store')->load(Mage_Core_Model_App::ADMIN_STORE_ID));
+   		$categories = Mage::getModel('catalog/product')->getCollection()
+						->addAttributeToFilter('activity_product', 2);
+		$categories->load();
+		foreach( $categories as $cat ) {
+			$cat->delete();
+		}
+		echo "0";
+   }
+
    public function storeAction(){
 	   echo "!";
 	   global $appID,$devID,$certID,$RuName,$serverUrl, $userToken,$compatabilityLevel, $siteID;
@@ -213,10 +363,20 @@ class Item {
 
 			foreach ( $id as $idd ){				
 			   if( is_integer($parent) ){
-					if( $idd->getParentCategory()->getId() == $parent )return $idd;   
+					if( $idd->getParentCategory()->getId() == $parent ){
+						if( $idd->getData('activity') == 0 ){
+							$idd->setData('activity',1);
+							$idd->save();	
+						}
+						return $idd;   
+					}
 			   }
 			   else{
 				   if( $idd->getParentCategory()->getName() == $parent || $parent == Mage::app()->getStore($store)->getRootCategoryId())
+						if( $idd->getData('activity') == 0 ){
+							$idd->setData('activity',1);
+							$idd->save();
+						}
 					   return $idd; 
 			   }
 			}
@@ -239,6 +399,7 @@ class Item {
 			$category->setIsActive(1);
 			$category->setDisplayMode('PRODUCTS');
 			$category->setIsAnchor(1); //for active achor
+			$category->setData('activity'  , 1);
 			if( is_integer($parent) ){
 				$parentCategory = Mage::getModel('catalog/category')->load(intval($parent));	
 			}else{
@@ -304,6 +465,7 @@ class Item {
 		$product->setTaxClassId(2); // taxable goods
 		$product->setVisibility(4); // catalog, search
 		$product->setStatus(1); // enabled
+		$product->setData('activity_product' , 1);
 		//$product->setPromotion(0); // enabled
 		$product->setDesignstyle(11); // enabled
 		// assign product to the default website

@@ -71,6 +71,52 @@ function enableAllItems(){
 	onFailure: function(){ alert('Couldnt Enable'); }
 	});
 } 
+function enableAllCategories(){
+	new Ajax.Request('/ebaysync/index/enableCategories',
+	{
+	method:'post',
+	onSuccess: function(transport){
+	var data = transport.responseText || "-3";
+			if( data == "0" )alert("Enabled ALL Categories!");
+	},
+	onFailure: function(){ alert('Couldnt Enable'); }
+	});
+} 
+function disableAllCategories(){
+	new Ajax.Request('/ebaysync/index/disableCategories',
+	{
+	method:'post',
+	onSuccess: function(transport){
+	var data = transport.responseText || "-3";
+			if( data == "0" )alert("Disabled ALL Categories!");
+	},
+	onFailure: function(){ alert('Couldnt Disable'); }
+	});
+}
+function deleteInactiveItems(){
+	if( !confirm("Are you sure ? You are going to delete all inactive Items!") )return ;
+	new Ajax.Request('/ebaysync/index/deleteInactive',
+	{
+	method:'post',
+	onSuccess: function(transport){
+	var data = transport.responseText || "-3";
+			if( data == "0" )alert("Disabled ALL Items!");
+	},
+	onFailure: function(){ alert('Couldnt Delete'); }
+	});
+}
+function deleteInactiveCategories(){
+	if( !confirm("Are you sure ? You are going to delete all inactive Categories!") )return ;
+	new Ajax.Request('/ebaysync/index/deleteInactiveCategories',
+	{
+	method:'post',
+	onSuccess: function(transport){
+	var data = transport.responseText || "-3";
+			if( data == "0" )alert("Disabled ALL Items!");
+	},
+	onFailure: function(){ alert('Couldnt Delete'); }
+	});
+}
 function startFetching(){
 	stop_flag = false;
     num = 0,comp = 0;
@@ -137,7 +183,13 @@ foreach (Mage::app()->getWebsites() as $website) {
 <input type="button" value="Resume" id="resume" onclick="resume();" disabled="disabled" /><br />
 <br />
 <input type="button" value="Disable All Items" onclick="javascript:disableAllItems();" /> <br />
-<input type="button" value="Enable All Items" onclick="javascript:enableAllItems();" /> 
+<input type="button" value="Enable All Items" onclick="javascript:enableAllItems();" /> <br />
+<br />
+<input type="button" value="Disable All Categories" onclick="javascript:disableAllCategories();" /> <br />
+<input type="button" value="Enable All Categories" onclick="javascript:enableAllCategories();" /> <br />
+<br />
+<input type="button" value="Delete Inactive Items" onclick="javascript:deleteInactiveItems();" /> <br />
+<input type="button" value="Delete Inactive Categories" onclick="javascript:deleteInactiveCategories();" /> <br />
 
 <?
 }

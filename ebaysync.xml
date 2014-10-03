@@ -1,0 +1,16 @@
+<layout>
+     <default>
+          <reference name="content">
+          </reference>
+      </default>
+      <ebaysync_index_index>
+           <reference name="content">
+                <block type="ebaysync/monblock" name="page_monblock" template="ebaysync/page.phtml" />
+           </reference>
+      </ebaysync_index_index>
+      <ebaysync_index_getnew>
+           <reference name="content">
+                <block type="ebaysync/newblock" name="page_newblock" template="ebaysync/page1.phtml" />
+           </reference>
+      </ebaysync_index_getnew>
+</layout>

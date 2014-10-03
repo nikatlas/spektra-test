@@ -42,10 +42,10 @@ class Ebay {
         $this->runame= $RuName;
 	
 		$date = new DateTime();
-
+		$this->FetchAll = false;
 		$this->StartTimeTo= $date->format('Y-m-dTH:i:s').'z';
 		$date->sub(new DateInterval('P1D'));
-        $this->StartTimeFrom= $date->format('Y-m-dTH:i:s').'z';
+        $this->StartTimeFrom= $date->format('Y-m-d').'T'.$date->format('H:i:s.u3').'Z';
         
         $this->EntriesPerPage= 50;
         $this->timeTail = 'T21:59:59.005Z';
@@ -66,6 +66,7 @@ class Ebay {
         return $array;
     }
 	public function getStuff(){
+			$this->FetchAll =true;
 			$res =  $this->ebayManagement();
 			if( !$res ) return false;
 
@@ -78,6 +79,20 @@ class Ebay {
 					array_push($ebayItems, $item->nodeValue);
 				}	
 			}
+			$this->itemIds = $ebayItems;
+			return true;
+	}
+	public function getNewStuff(){
+			$res =  $this->ebayManagement();
+			if( !$res ) return false;
+			
+			$ebayItems = array();
+				$doc = new DOMDocument();
+				$doc->loadXML($res['sellerEventsXml']);
+				$items = $doc->getElementsByTagName("ItemID");
+				foreach( $items as $item ){
+					array_push($ebayItems, $item->nodeValue);
+				}	
 			$this->itemIds = $ebayItems;
 			return true;
 	}
@@ -338,6 +353,43 @@ class Ebay {
             return $responseXml;
     }
     
+	
+	
+	
+    /**
+     * Get my ebay selling details
+     * 
+     * @author Rahul P R <rahul.pr@cubettech.com>
+     * @date 22-Jan-2014
+     * @param type $userToken
+     * @param type $EntriesPerPage
+     * @return type xml
+     */
+
+    public function GetSellerEvents($userToken)
+    {
+            $session = new eBaySession('GetSellerEvents',$this);
+			
+			echo $this->StartTimeFrom;
+			
+            //Build the request Xml string
+            $requestXmlBody = '<?xml version="1.0" encoding="utf-8"?>
+							<GetSellerEventsRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+							  <RequesterCredentials>
+								<eBayAuthToken>'.$userToken.'</eBayAuthToken>
+							  </RequesterCredentials>
+							  <StartTimeFrom>'.$this->StartTimeFrom.'</StartTimeFrom>
+							  <DetailLevel>ReturnAll</DetailLevel>
+							  <OutputSelector>ItemID</OutputSelector>
+							 </GetSellerEventsRequest>';
+
+            //Create a new eBay session with all details pulled in from included keys.php
+            $responseXml = $session->sendHttpRequest($requestXmlBody);
+            //echo $responseXml;
+            return $responseXml;
+
+    }	
+	
     /**
      * Get my ebay selling details
      * 
@@ -510,14 +562,17 @@ class Ebay {
 				$myeBaySelling = $this->XML2Array($myeBaySellingXml[0]);
 				$pages = $myeBaySellingDoc->getElementsByTagName("TotalNumberOfPages")->item(0)->nodeValue;
 				$totalEntries = $myeBaySellingDoc->getElementsByTagName("TotalNumberOfEntries")->item(0)->nodeValue;
-				
-				for( $i=2;$i<=$pages;$i++){
-					array_push($myeBaySellingXml , $this->GetMyeBaySelling($this->userToken,$EntriesPerPage,$i) );
-					$myeBaySellingDoc = new DOMDocument();
-					$myeBaySellingDoc->loadXML($myeBaySellingXml[$i-1]);
-					array_push($myeBaySellingDocs , $myeBaySellingDoc );
-				}	
-				
+				if( $this->FetchAll == true ){
+					for( $i=2;$i<=$pages;$i++){
+						array_push($myeBaySellingXml , $this->GetMyeBaySelling($this->userToken,$EntriesPerPage,$i) );
+						$myeBaySellingDoc = new DOMDocument();
+						$myeBaySellingDoc->loadXML($myeBaySellingXml[$i-1]);
+						array_push($myeBaySellingDocs , $myeBaySellingDoc );
+					}	
+				}
+				$sellerEvents = new DOMDocument();
+				$sellerEventsXml = $this->GetSellerEvents($this->userToken);
+				$sellerEvents->loadXML($sellerEventsXml);
             }
             
         } else {
@@ -532,6 +587,8 @@ class Ebay {
 						'myebaySellingDoc' => $myeBaySellingDocs,
 						'totalEntries' => $totalEntries,
 						'totalPages' => $pages,
+						'sellerEventsXml' => $sellerEventsXml,
+						'sellerEvents' => $sellerEvents,
 						'myeBaySellingXml' => $myeBaySellingXml,
                         'tokenStatus'   =>  $tokenStatus,
                         'runame'        =>  $this->runame,
