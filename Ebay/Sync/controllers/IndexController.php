@@ -160,7 +160,8 @@ class Ebay_Sync_IndexController extends Mage_Core_Controller_Front_Action
    public function deleteInactiveCategoriesAction(){
 	    Mage::app()->setCurrentStore(Mage::getModel('core/store')->load(Mage_Core_Model_App::ADMIN_STORE_ID));
    		$categories = Mage::getModel('catalog/category')->getCollection()
-						->addAttributeToFilter('activity', 0);
+						->addAttributeToFilter('activity', 0)
+						->addAttributeToFilter('level' , array( 'gt' => 1 ) );
 		$categories->load();
 		foreach( $categories as $cat ) {
 			//echo " <BR> [!] NAME : " . $cat->getName() . " !! " ;	
