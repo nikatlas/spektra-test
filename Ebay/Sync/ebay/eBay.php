@@ -44,10 +44,15 @@ class Ebay {
 		$date = new DateTime();
 		$this->FetchAll = false;
 		$this->StartTimeTo= $date->format('Y-m-dTH:i:s').'z';
-		$date->sub(new DateInterval('P1D'));
+
+		$d = 1;
+		if( isset($_REQUEST['time_from_get']) ){
+			$d = $_REQUEST['time_from_get'];
+		} 
+		$date->sub(new DateInterval('P'.$d.'D'));
         $this->StartTimeFrom= $date->format('Y-m-d').'T'.$date->format('H:i:s.u3').'Z';
         
-        $this->EntriesPerPage= 50;
+        $this->EntriesPerPage= 200;
         $this->timeTail = 'T21:59:59.005Z';
 		$this->itemIds = array();
     }
@@ -82,6 +87,7 @@ class Ebay {
 			$this->itemIds = $ebayItems;
 			return true;
 	}
+	
 	public function getNewStuff(){
 			$res =  $this->ebayManagement();
 			if( !$res ) return false;
@@ -97,6 +103,24 @@ class Ebay {
 			return true;
 	}
     
+	// GET ALL ACTIVE STUFF
+	public function getActiveStuff(){
+			$this->FetchAll =true;
+			$res =  $this->ebayManagement();
+			if( !$res ) return false;
+
+			$ebayItems = array();
+			for ( $i=0;$i< $res['totalPages'];$i++ ){
+				$doc = new DOMDocument();
+				$doc->loadXML($res['myeBaySellingXml'][$i]);
+				$items = $doc->getElementsByTagName("SKU");
+				foreach( $items as $item ){
+					array_push($ebayItems, $item->nodeValue);
+				}	
+			}
+			$this->skus = $ebayItems;
+			return true;
+	}
     /**
      * Parse XML content to Object
      * 
@@ -370,7 +394,7 @@ class Ebay {
     {
             $session = new eBaySession('GetSellerEvents',$this);
 			
-			echo $this->StartTimeFrom;
+			//echo $this->StartTimeFrom;
 			
             //Build the request Xml string
             $requestXmlBody = '<?xml version="1.0" encoding="utf-8"?>
@@ -418,6 +442,7 @@ class Ebay {
                                 </Pagination>
                               </ActiveList>
 							  <OutputSelector>ItemID</OutputSelector>
+							  <OutputSelector>SKU</OutputSelector>
 							  <OutputSelector>PaginationResult</OutputSelector>
                             </GetMyeBaySellingRequest>';
 
@@ -558,6 +583,7 @@ class Ebay {
 				array_push($myeBaySellingXml , $this->GetMyeBaySelling($this->userToken,$EntriesPerPage,$pageNumber) );
         		$myeBaySellingDoc = new DOMDocument();
 		        $myeBaySellingDoc->loadXML($myeBaySellingXml[0]);
+				//exit( $myeBaySellingXml[0] );
 				array_push($myeBaySellingDocs , $myeBaySellingDoc );
 				$myeBaySelling = $this->XML2Array($myeBaySellingXml[0]);
 				$pages = $myeBaySellingDoc->getElementsByTagName("TotalNumberOfPages")->item(0)->nodeValue;

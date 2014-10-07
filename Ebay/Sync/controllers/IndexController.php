@@ -302,7 +302,8 @@ class Ebay_Sync_IndexController extends Mage_Core_Controller_Front_Action
 	
    }
    public function testAction (){
-
+	  
+		
 	   Mage::app()->setCurrentStore(Mage_Core_Model_App::ADMIN_STORE_ID);
 		
 		$pid = Mage::getModel('catalog/product')->getIdBySku("xx04852");
@@ -314,7 +315,63 @@ class Ebay_Sync_IndexController extends Mage_Core_Controller_Front_Action
 		$time = microtime(true) - $time_start;
 		echo "TIME : " .$time;
    }
-   
+   public function syncActiveListAction (){	   
+	 // GLOBALS INITIATED IN KEYS
+	 global $appID,$devID,$certID,$RuName,$serverUrl, $userToken,$compatabilityLevel, $siteID;
+	 initKeys();
+     // 
+	 session_start();
+	 $ebay = new Ebay($appID,$devID,$certID,$RuName,$serverUrl, $userToken,$compatabilityLevel, $siteID);
+	 $ebay->getActiveStuff();
+	
+	
+	 $this->disableAction(); // DISABLE 
+	 $time = microtime(true);
+
+	 $doubles = $this->getDoublesAndRemoveInArray($ebay->skus);
+	 
+	 $missing = 0;
+	 $activated = 0;
+	 $ssskus = array();
+	 
+	 
+		
+	 foreach ( $ebay->skus as $sku ){ // UPDATE 
+        $prod = Mage::getModel('catalog/product')->loadByAttribute('sku',$sku);
+		if( !$prod ){
+			array_push($ssskus , $sku );
+			$missing++;			
+		}else{
+			$prod->setData('activity_product' , 1);
+			$prod->getResource()->saveAttribute($prod, 'activity_product'); 
+			$activated++;
+		}
+	 }
+	 $dt = microtime(true) - $time;
+	 
+	 $this->deleteInactiveAction(); // DELETE 
+	 
+	 //print_r($ssskus);
+	 echo "Size :" . sizeof($ebay->skus) . "<BR>";
+	 echo "Activated :" . $activated . "<BR>";
+	 echo "Missing:" . $missing . "<BR>";
+	 echo "Time needed:" . $dt. "<BR>";
+	 echo "<BR> Doubles :".sizeof( $doubles ) . " <BR> " .implode("," , $doubles)."<BR>";
+	 
+   }
+   public function 	 getDoublesAndRemoveInArray( &$arr){
+		$h = array_count_values ( $arr );
+		$rem = array();
+		foreach( $h as $key=>$freq ){
+			if( $freq > 1 ){
+				$remove = array($key);
+				$arr = array_diff($arr, $remove); 					
+				array_push($rem , $key );
+				array_push($arr , $key );
+			}
+		}
+		return $rem;
+   }
    public function checkSku($sku){
 			$id = Mage::getModel('catalog/product')->getIdBySku($sku);
 			if ($id){
@@ -473,7 +530,14 @@ class Item {
 		$product->setWebsiteIds(array($store));	
 		$product->setMetaTitle($this->name);
 		
-
+ 		$date = new DateTime();
+		$date->add(new DateInterval('P2D'));
+		$datef = new DateTime();
+		$datef->sub(new DateInterval('P2D'));
+		
+		$product->setData('news_to_date' , $date->format("Y-m-d H:i:s"));
+		$product->setData('news_from_date' , $datef->format("Y-m-d H:i:s"));
+		
 		// for stock
 		$stockData = $product->getStockData();
 		$stockData['qty'] = $this->quantity;

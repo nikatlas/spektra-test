@@ -2,9 +2,7 @@
 //echo "!".">".(isset($_SESSION['itemIds'])?"true":"false");
 //echo "<BR>".sizeof($_SESSION['itemIds']);
 
-if ( !isset($_SESSION['newItemIds']) || sizeof($_SESSION['newItemIds']) <= 0 ){
-	$this->methodblock(); 
-}
+$this->methodblock(); 
 $itemIds = $_SESSION['newItemIds'];
 if( sizeof($itemIds) > 0 ){
 ?> 
