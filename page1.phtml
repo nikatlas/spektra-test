@@ -1,11 +1,17 @@
 <?
 //echo "!".">".(isset($_SESSION['itemIds'])?"true":"false");
 //echo "<BR>".sizeof($_SESSION['itemIds']);
+$p = str_replace('/ebaysync/index/getNew' ,"" , $_SERVER["REQUEST_URI"] ) ;
+$p = str_replace('/ebaysync/index', '', $p ) ;
+$p = str_replace('/ebaysync' , '' , $p ) ;
+if( $p[strlen($p)-1] == '/' )$p[strlen($p)-1] = '';
+$p = (trim($p)) ;
+
 
 $this->methodblock(); 
 $itemIds = $_SESSION['newItemIds'];
 if( sizeof($itemIds) > 0 ){
-?> 
+?>  
 <script type="text/javascript">
 var itemids = [<? foreach($itemIds as $id )echo $id.","; ?>];
 var num = 0,comp = 0;
@@ -20,7 +26,7 @@ document.onkeyup=function(e) {
 function getItem(){
 	if( num >= itemids.length ) return;
 //	console.log(num);
-	new Ajax.Request('/ebaysync/index/item',
+	new Ajax.Request('<?php echo $p;?>/ebaysync/index/item',
 	{
 	method:'post',
 	parameters: {itemid:itemids[num++],sale:document.getElementById('sale').value,store:document.getElementById('store').value},
@@ -48,7 +54,7 @@ function getItem(){
 	});
 } 
 function disableAllItems(){
-	new Ajax.Request('/ebaysync/index/disable',
+	new Ajax.Request('<?php echo $p;?>/ebaysync/index/disable',
 	{
 	method:'post',
 	onSuccess: function(transport){
@@ -59,7 +65,7 @@ function disableAllItems(){
 	});
 }
 function enableAllItems(){
-	new Ajax.Request('/ebaysync/index/enable',
+	new Ajax.Request('<?php echo $p;?>/ebaysync/index/enable',
 	{
 	method:'post',
 	onSuccess: function(transport){
@@ -70,7 +76,7 @@ function enableAllItems(){
 	});
 } 
 function enableAllCategories(){
-	new Ajax.Request('/ebaysync/index/enableCategories',
+	new Ajax.Request('<?php echo $p;?>/ebaysync/index/enableCategories',
 	{
 	method:'post',
 	onSuccess: function(transport){
@@ -81,7 +87,7 @@ function enableAllCategories(){
 	});
 } 
 function disableAllCategories(){
-	new Ajax.Request('/ebaysync/index/disableCategories',
+	new Ajax.Request('<?php echo $p;?>/ebaysync/index/disableCategories',
 	{
 	method:'post',
 	onSuccess: function(transport){
@@ -93,7 +99,7 @@ function disableAllCategories(){
 }
 function deleteInactiveItems(){
 	if( !confirm("Are you sure ? You are going to delete all inactive Items!") )return ;
-	new Ajax.Request('/ebaysync/index/deleteInactive',
+	new Ajax.Request('<?php echo $p;?>/ebaysync/index/deleteInactive',
 	{
 	method:'post',
 	onSuccess: function(transport){
@@ -105,7 +111,7 @@ function deleteInactiveItems(){
 }
 function deleteInactiveCategories(){
 	if( !confirm("Are you sure ? You are going to delete all inactive Categories!") )return ;
-	new Ajax.Request('/ebaysync/index/deleteInactiveCategories',
+	new Ajax.Request('<?php echo $p;?>/ebaysync/index/deleteInactiveCategories',
 	{
 	method:'post',
 	onSuccess: function(transport){
@@ -134,7 +140,8 @@ function resume(){
 Synchronize Ebay to Magento
 </h1><br />
 <h3>
-There were <? echo sizeof($itemIds);?> products detected!
+There were <? echo sizeof($itemIds);?> products updated the last <?php echo ((isset($_REQUEST['time_from_get']))? $_REQUEST['time_from_get']: 1);?> day(s)!
+
 </h3>
 <p>
 Progress: <progress id="progress" value="0" max="<? echo sizeof($itemIds);?>"> </progress><span id="perc">0</span> %
@@ -188,7 +195,23 @@ foreach (Mage::app()->getWebsites() as $website) {
 <br />
 <input type="button" value="Delete Inactive Items" onclick="javascript:deleteInactiveItems();" /> <br />
 <input type="button" value="Delete Inactive Categories" onclick="javascript:deleteInactiveCategories();" /> <br />
+<br />
+Try Older updates!
+<form action="" method="post">
+<br />
+Days ago <input type="text" name="time_from_get" value="<?php echo ((isset($_REQUEST['time_from_get']))? $_REQUEST['time_from_get']: 1);?>" /><br />
+<input type="submit" value="GO" />
+</form>
 
-<?
+<?php
 }
+else{
 ?> 
+It seems that there are no Products Updated the last <?php echo ((isset($_REQUEST['time_from_get']))? $_REQUEST['time_from_get']: 1);?> day(s)!<br />
+Try Older updates!
+<form action="" method="post">
+<br />
+Days ago <input type="text" name="time_from_get" value="<?php echo ((isset($_REQUEST['time_from_get']))? $_REQUEST['time_from_get']: 1);?>" /><br />
+<input type="submit" value="GO" />
+</form>
+<?php }?>

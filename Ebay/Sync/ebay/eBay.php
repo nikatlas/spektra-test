@@ -37,8 +37,12 @@ class Ebay {
         $this->certID= $certID;
         $this->compatabilityLevel= $compatabilityLevel;
         $this->siteID= $siteID;
+		
         $this->userToken= $userToken;
-        $this->serverUrl= $serverUrl;
+        if( $userToken == "" && isset($_SESSION['userToken']) ){
+			$this->userToken = $_SESSION['userToken'];
+		}
+		$this->serverUrl= $serverUrl;
         $this->runame= $RuName;
 	
 		$date = new DateTime();
@@ -114,9 +118,16 @@ class Ebay {
 				$doc = new DOMDocument();
 				$doc->loadXML($res['myeBaySellingXml'][$i]);
 				$items = $doc->getElementsByTagName("SKU");
+				//exit( sizeof( $items ) ."LLL");
 				foreach( $items as $item ){
 					array_push($ebayItems, $item->nodeValue);
 				}	
+				if( sizeof($ebayItems) == 0 ){			
+					$items = $doc->getElementsByTagName("ItemID");
+					foreach( $items as $item ){
+						array_push($ebayItems, $item->nodeValue);
+					}	
+				}
 			}
 			$this->skus = $ebayItems;
 			return true;
@@ -139,7 +150,7 @@ class Ebay {
         return $responseDoc;
     }	
 	public function grabCategoryIDFromStore($doc1){
-		if ( sizeof( $doc1->getElementsByTagName("StoreCategoryID") ) == 0 ){
+		if ( $doc1->getElementsByTagName("StoreOwner")->item(0)->nodeValue == "false" ){
 					return $doc1->getElementsByTagName("CategoryID")->item(0)->nodeValue;
 		}
 		return $doc1->getElementsByTagName("StoreCategoryID")->item(0)->nodeValue;
@@ -148,7 +159,7 @@ class Ebay {
 			global $appID,$devID,$certID,$RuName,$serverUrl, $userToken,$compatabilityLevel, $siteID;
 			initKeys();
 			session_start();
-			if ( sizeof( $doc1->getElementsByTagName("StoreCategoryID") ) == 0 ){
+			if ( $doc1->getElementsByTagName("StoreOwner")->item(0)->nodeValue == "false" ){
 					return $doc1->getElementsByTagName("CategoryName")->item(0)->nodeValue;
 			}
 			$reqID = $doc1->getElementsByTagName("StoreCategoryID")->item(0)->nodeValue;
@@ -194,7 +205,7 @@ class Ebay {
 	}
 	public function getItemData($itemId){
 			 $xml = $this->getItem($itemId);			 
-			 //echo $xml;
+			 //echo $xml;die();
 			 $doc = new DOMDocument();
 			 $desdoc = new DOMDocument();
 			 $doc->loadXML($xml);
@@ -534,6 +545,7 @@ class Ebay {
 			if($fetchTokenResponse->getElementsByTagName('Ack')->item(0)->nodeValue=='Success'){
 				//echo '1.Success <br>';
 				$this->userToken =  $fetchTokenResponse->getElementsByTagName('eBayAuthToken')->item(0)->nodeValue;
+				$_SESSION['userToken'] = $fetchTokenResponse->getElementsByTagName('eBayAuthToken')->item(0)->nodeValue;
 			} else {
 				$_SESSION['sesId'] = "";
 				echo 'FetchToken Fail <BR><br>';

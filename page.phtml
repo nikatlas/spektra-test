@@ -1,6 +1,11 @@
 <?
 //echo "!".">".(isset($_SESSION['itemIds'])?"true":"false");
 //echo "<BR>".sizeof($_SESSION['itemIds']);
+$p = str_replace('/ebaysync/index/index' ,"" , $_SERVER["REQUEST_URI"] ) ;
+$p = str_replace('/ebaysync/index', '', $p ) ;
+$p = str_replace('/ebaysync' , '' , $p ) ;
+if( $p[strlen($p)-1] == '/' )$p[strlen($p)-1] = '';
+$p = (trim($p)) ;
 
 if ( !isset($_SESSION['itemIds']) || sizeof($_SESSION['itemIds']) <= 0 ){
 	$this->methodblock(); 
@@ -22,7 +27,7 @@ document.onkeyup=function(e) {
 function getItem(){
 	if( num >= itemids.length ) return;
 //	console.log(num);
-	new Ajax.Request('/ebaysync/index/item',
+	new Ajax.Request('<?php echo $p; ?>/ebaysync/index/item',
 	{
 	method:'post',
 	parameters: {itemid:itemids[num++],sale:document.getElementById('sale').value,store:document.getElementById('store').value},
@@ -50,7 +55,7 @@ function getItem(){
 	});
 } 
 function disableAllItems(){
-	new Ajax.Request('/ebaysync/index/disable',
+	new Ajax.Request('<?php echo $p; ?>/ebaysync/index/disable',
 	{
 	method:'post',
 	onSuccess: function(transport){
@@ -61,7 +66,7 @@ function disableAllItems(){
 	});
 }
 function enableAllItems(){
-	new Ajax.Request('/ebaysync/index/enable',
+	new Ajax.Request( '<?php echo $p; ?>/ebaysync/index/enable',
 	{
 	method:'post',
 	onSuccess: function(transport){
@@ -72,7 +77,7 @@ function enableAllItems(){
 	});
 } 
 function enableAllCategories(){
-	new Ajax.Request('/ebaysync/index/enableCategories',
+	new Ajax.Request('<?php echo $p; ?>/ebaysync/index/enableCategories',
 	{
 	method:'post',
 	onSuccess: function(transport){
@@ -83,7 +88,7 @@ function enableAllCategories(){
 	});
 } 
 function disableAllCategories(){
-	new Ajax.Request('/ebaysync/index/disableCategories',
+	new Ajax.Request('<?php echo $p; ?>/ebaysync/index/disableCategories',
 	{
 	method:'post',
 	onSuccess: function(transport){
@@ -95,7 +100,7 @@ function disableAllCategories(){
 }
 function deleteInactiveItems(){
 	if( !confirm("Are you sure ? You are going to delete all inactive Items!") )return ;
-	new Ajax.Request('/ebaysync/index/deleteInactive',
+	new Ajax.Request('<?php echo $p; ?>/ebaysync/index/deleteInactive',
 	{
 	method:'post',
 	onSuccess: function(transport){
@@ -107,7 +112,7 @@ function deleteInactiveItems(){
 }
 function deleteInactiveCategories(){
 	if( !confirm("Are you sure ? You are going to delete all inactive Categories!") )return ;
-	new Ajax.Request('/ebaysync/index/deleteInactiveCategories',
+	new Ajax.Request('<?php echo $p; ?>/ebaysync/index/deleteInactiveCategories',
 	{
 	method:'post',
 	onSuccess: function(transport){

@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <dwsync>
-<file name="eBay.php" server="5.9.119.101//var/www/html/myeurostores.com/magento/app/code/local/" local="130570788797986550" remote="130570696800000000" />
+<file name="eBay.php" server="5.9.119.101//var/www/html/myeurostores.com/magento/app/code/local/" local="130572307292854352" remote="130572222000000000" />
+<file name="ebaySession.php" server="5.9.119.101//var/www/html/myeurostores.com/magento/app/code/local/" local="130564468197479552" remote="130572222000000000" />
+<file name="front.php" server="5.9.119.101//var/www/html/myeurostores.com/magento/app/code/local/" local="130564468197479552" remote="130572222000000000" />
+<file name="frontR.php" server="5.9.119.101//var/www/html/myeurostores.com/magento/app/code/local/" local="130564468197479552" remote="130572222000000000" />
+<file name="keys.php" server="5.9.119.101//var/www/html/myeurostores.com/magento/app/code/local/" local="130564468197479552" remote="130572222000000000" />
 </dwsync>

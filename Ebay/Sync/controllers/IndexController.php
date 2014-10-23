@@ -12,13 +12,47 @@ class Ebay_Sync_IndexController extends Mage_Core_Controller_Front_Action
 {
    public function indexAction ()
    {
+		if( !$this->checkActivityProductAttribute() ){
+			 $this->createActivityProductAttributeAction();
+			 echo " [!] -> Refresh ! " ;
+			 return;
+		}
+		if( !$this->checkActivityAttribute() ){
+			 $this->createActivityAttributeAction();
+			 echo " [!] -> Refresh ! " ;
+			 return;
+		}
 		$this->loadLayout();
 		$this->renderLayout();
 		return;
    }
    public function getNewAction(){
+	   if( !$this->checkActivityProductAttribute() ){
+			 $this->createActivityProductAttributeAction();
+			 echo " [!] -> Refresh ! " ;
+			 return;
+		}
+		if( !$this->checkActivityAttribute() ){
+			 $this->createActivityAttributeAction();
+			 echo " [!] -> Refresh ! " ;
+			 return;
+		}
 		$this->loadLayout();
 		$this->renderLayout();
+   }
+   public function checkActivityAttribute(){
+		require_once "app/Mage.php";
+		
+		Mage::app()->setCurrentStore(Mage::getModel('core/store')->load(Mage_Core_Model_App::ADMIN_STORE_ID));
+	
+		$resource = Mage::getSingleton('core/resource');
+		$readConnection = $resource->getConnection('core_read');
+		$query = "SELECT count(*) AS `max` FROM eav_attribute WHERE attribute_code='activity'";
+		$results = $readConnection->fetchAll($query);
+		if( $results[0]['max'] > 0 ){
+			return true;
+		}   
+		return false;
    }
    public function createActivityAttributeAction () {
     require_once "app/Mage.php";
@@ -53,11 +87,25 @@ class Ebay_Sync_IndexController extends Mage_Core_Controller_Front_Action
     $installer->addAttribute('catalog_category', 'activity', $attribute);
 
     $installer->endSetup();   
-	echo "[*] Adding attribute to existing nodes...  <br>";
+	echo "[*] Adding Activity attribute to existing nodes...  <br>";
 	
 	$categories = Mage::getModel('catalog/category')->getCollection()->load();
 	foreach($categories as $cat)$cat->save();
 	echo "[*] Installed";	
+   }
+   public function checkActivityProductAttribute(){
+		require_once "app/Mage.php";
+		
+		Mage::app()->setCurrentStore(Mage::getModel('core/store')->load(Mage_Core_Model_App::ADMIN_STORE_ID));
+	
+		$resource = Mage::getSingleton('core/resource');
+		$readConnection = $resource->getConnection('core_read');
+		$query = "SELECT count(*) AS `max` FROM eav_attribute WHERE attribute_code='activity_product'";
+		$results = $readConnection->fetchAll($query);
+		if( $results[0]['max'] > 0 ){
+			return true;
+		}   
+		return false;
    }
    public function createActivityProductAttributeAction () {
 		require_once "app/Mage.php";
@@ -92,7 +140,7 @@ class Ebay_Sync_IndexController extends Mage_Core_Controller_Front_Action
 		$installer->addAttribute('catalog_product', 'activity_product', $attribute);
 	
 		$installer->endSetup();   
-		echo "[*] Adding attribute to existing nodes...  <br>";
+		echo "[*] Adding ActivityProduct attribute to existing nodes...  <br>";
 		
 		$categories = Mage::getModel('catalog/product')->getCollection()->load();
 		foreach($categories as $cat)$cat->save();
@@ -169,6 +217,21 @@ class Ebay_Sync_IndexController extends Mage_Core_Controller_Front_Action
 		}
 		echo "0";
    }
+   public function fixTaxAction(){
+	    	$resource = Mage::getSingleton('core/resource');
+			$readConnection = $resource->getConnection('core_read');
+			$query = "SELECT attribute_id FROM eav_attribute WHERE attribute_code='tax_class_id'";
+			$results = $readConnection->fetchAll($query);
+			if( sizeof( $results) == 0 ) {
+				echo "Activity attribute doesnt exist!";return;	
+			}
+			
+			$resource = Mage::getSingleton('core/resource');
+			$writeConnection = $resource->getConnection('core_write');
+			$query = "UPDATE catalog_product_entity_int SET value='0' WHERE attribute_id=".$results[0]['attribute_id'];
+			$writeConnection->query($query);
+			echo "0";
+   }
    public function deleteInactiveAction(){
 	    Mage::app()->setCurrentStore(Mage::getModel('core/store')->load(Mage_Core_Model_App::ADMIN_STORE_ID));
    		$categories = Mage::getModel('catalog/product')->getCollection()
@@ -214,7 +277,7 @@ class Ebay_Sync_IndexController extends Mage_Core_Controller_Front_Action
 
    }
    public function itemAction ()
-   {
+   {	 
 	 $itemid = $_REQUEST['itemid'];
 	 $sale = $_REQUEST['sale'];
 	 $store = $_REQUEST['store'];
@@ -229,7 +292,8 @@ class Ebay_Sync_IndexController extends Mage_Core_Controller_Front_Action
 	 $item = new Item();
 	 $item = $ebay->getItemData($itemid);     
 	 if ( !isset($item->sku) || $item->sku == "" ) {
-				 echo "-1";return; 
+		 $item->sku = $item->itemid;
+		 //echo "-1";return; 
 	 }
 	 Mage::app()->setCurrentStore($store);
 	 $cat = $item->checkCreateCategoryTree($item->categoryName,$store);		
@@ -520,7 +584,7 @@ class Item {
 		//$product->setTypeId('simple');
 		$product->setCategoryIds(array($cat->getId())); 
 		$product->setWeight(isset($this->weight)?$this->weight:0.0); // need to fetch weight , I am not currently
-		$product->setTaxClassId(2); // taxable goods
+		$product->setTaxClassId(0); // taxable goods
 		$product->setVisibility(4); // catalog, search
 		$product->setStatus(1); // enabled
 		$product->setData('activity_product' , 1);
