@@ -40,6 +40,25 @@ class Ebay_Sync_IndexController extends Mage_Core_Controller_Front_Action
 		$this->loadLayout();
 		$this->renderLayout();
    }
+   public function cronAction(){
+		global $appID,$devID,$certID,$RuName,$serverUrl, $userToken,$compatabilityLevel, $siteID;
+	    initKeys();
+		  $_REQUEST['time_from_get'] = 1;
+		  session_start();
+		  $ebay = new Ebay($appID,$devID,$certID,$RuName,$serverUrl, $userToken,$compatabilityLevel, $siteID);
+
+		 if( $ebay->getNewStuff() ){
+			  $_SESSION['newItemIds'] = $ebay->itemIds;			   
+			  echo sizeof($_SESSION['newItemIds'])."/<br>";
+			  foreach($ebay->itemIds as $item){
+				  $this->itemAction($item);
+			  }
+		  }
+		  else{
+			exit("-1");  
+		  }   
+   }
+   
    public function checkActivityAttribute(){
 		require_once "app/Mage.php";
 		
@@ -276,15 +295,16 @@ class Ebay_Sync_IndexController extends Mage_Core_Controller_Front_Action
 		 echo $name;
 
    }
-   public function itemAction ()
+   public function itemAction ($itemid = '', $sale = -4, $store = 1)
    {	 
-	 $itemid = $_REQUEST['itemid'];
-	 $sale = $_REQUEST['sale'];
-	 $store = $_REQUEST['store'];
-	 if ( !isset($_REQUEST['itemid']) || $itemid == "" ) {
+   	 $itemid = isset($_REQUEST['itemid']) ? $_REQUEST['itemid'] : $itemid;
+	 if ( !isset($itemid) || $itemid == "" ) {
 				 echo "-2";return; 
 	 }
 
+	 $sale = isset($_REQUEST['sale']) ? $_REQUEST['sale'] :$sale ;
+	 $store = isset($_REQUEST['store']) ? $_REQUEST['store'] :$store;
+	 
 	 global $appID,$devID,$certID,$RuName,$serverUrl, $userToken,$compatabilityLevel, $siteID;
 	 initKeys();
 	 session_start();
@@ -319,7 +339,8 @@ class Ebay_Sync_IndexController extends Mage_Core_Controller_Front_Action
 	 echo "INIT:".(microtime(true) - $t)."<br>";
 	 $t = microtime(true);
 	 
-	 $item = $ebay->getItemData($itemid);     
+	 $item = $ebay->getItemData($itemid); 
+	 var_dump($item);    
 	 if ( !isset($item->sku) || $item->sku == "" ) {
 				 echo "-1";return; 
 	 }
@@ -378,6 +399,15 @@ class Ebay_Sync_IndexController extends Mage_Core_Controller_Front_Action
 		$product->save();
 		$time = microtime(true) - $time_start;
 		echo "TIME : " .$time;
+   }
+   
+   public function testtestAction(){	
+     //   $attr = Mage::getModel('catalog/product')->getAttributes();
+		//var_dump($attr);
+        $prod = Mage::getModel('catalog/product')
+			->setAttributeSetId(4)->loadByAttribute('sku','xx00146');
+	  	var_dump($prod);
+		echo "!".$prod->getData("news_from_date"),"!".$prod->getData("sku");
    }
    public function syncActiveListAction (){	   
 	 // GLOBALS INITIATED IN KEYS

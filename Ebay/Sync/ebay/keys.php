@@ -9,14 +9,14 @@ function initKeys(){
     $compatabilityLevel = 893;    // eBay API version
 	$siteID = 0; // 0 = US
     if ($production) {
-        $devID = 'f2a7f4ed-c06f-494d-bc2e-af34346a2705';   // these prod keys are different from sandbox keys
-        $appID = 'SpektraM-a390-4335-825a-25770418f312';
-        $certID = '3de3717a-9916-44c2-9af2-e7ee936d7e65';
-        $RuName = 'SpektraMaxima-SpektraM-a390-4-ydzzsn';
+        $devID = '1b5ff2f1-fa67-4fc8-92df-0f9d45dae0b2';   // these prod keys are different from sandbox keys
+        $appID = 'SpektraM-86c9-4eff-8e26-f708893febd3';
+        $certID = '3a7805fb-a3cc-45c7-8640-95a66ce663a0';
+        $RuName = '';
         //set the Server to use (Sandbox or Production)
         $serverUrl = 'https://api.ebay.com/ws/api.dll';      // server URL different for prod and sandbox
         //the token representing the eBay user to assign the call with
-        $userToken = 'AgAAAA**AQAAAA**aAAAAA**VZwSVA**nY+sHZ2PrBmdj6wVnY+sEZ2PrA2dj6AFkIKoAZSDowmdj6x9nY+seQ**Y3UCAA**AAMAAA**flSxt4gPiIoMrwbji72ZDwkYjI7K1MMgsg0VtC/UbZ5Gw/q9VwiNd9hJK1LSkSz2nJ42n0CS3qV0rz1IS4Rso8xuwN/eOCkbXArPIDIO3FdslAyNfJxAu4eLZQpHWWoVQP7w26Bss+B2H1T1aLNd8I4ZQt8X9VFEoLfpsNSQ/mk9O0ZK5hod/T5tucHMyJbja7BkFWLg9qU269r9CaGmhfAq5NxFDnG7on6j+sNRa06EhgoWv+tHcNxzx4cCrQs++ZVuVXsKkTQv4BdDY4jEL3w7GeJCGXUiev/NYPTCtx84/DiChqMCxWvLhCTjLLHwbHajY+p5yHnX5IbnTKmI+73Amzj84gWPh+YFc5FVSPIKUMGlE6UGHdEuyeQECkdNnATakL0jy9bBngPT+w5f99VAFL41XEFeNKBk3NLpxftunsVnUklIO9CmDQThbwyPR+i3reh+2UgVE1LuclY4de8LCPDWKckOh1nWbZrIuwK5kCgjJvnF3Hzs9iJHUt7+1NFhSjgB7Cmk9+vBoCWFpPCZtdruePzkU3K/VB3s1OWMtlkCjtkeEXlrZRGTvm4fRE+Ch6WAX1Hys7uY1ZXe+nTt1egOr7Zk7MpxxZSlslzSRCX1ZsX3wrCsjsESFETZEMZjjROby4U9vTqwuEvm0mJ9HCr94k2+7doxo+/vZe6hc7IfUoy3If8rlEzckC3dhe+untDtl+QTg84N2jOqJoysiGoN0wEDGorQO4MxNKnDfL/1W2Wx3TYBquHi6ZQc';
+        $userToken = 'AgAAAA**AQAAAA**aAAAAA**sG5nVA**nY+sHZ2PrBmdj6wVnY+sEZ2PrA2dj6AFkIKoAZSDowmdj6x9nY+seQ**sZICAA**AAMAAA**XaKR1ET7r30QpkUaddPE3bL+NSz7+MD3mK9XGtJdwiFP+mRI00eZTOmi4DeXAOcplpyhZtLhrE3Z5IFsHqck2ZJrsZvtRgjkpt1IMtUEeAa/y5X8VhjAtdpdAjeAPlyDH01OYMLZl3SiQ84mcmluKZ7xRmaYFjc3+RRBI9yYqWgLOImCw0X6pA59S8sWB0M3lBtd2dpyLWqwc2IBOrVJNg0Tf/JSM3eEW0GFuljdXmsEdD4tiELYUr/goRuAwwUBD6F9wUiDTt8zkX9XBcTu//0666Xbr71OF7kb5YI/+cGixe76O5i9XUd35F57Qg9FrAIc/9Hzg53uvu736UGIyakX0hfKfqZOzlOaiKnfdnTT+TLcAeDOMZsa38rQPBAWCLI7l3RAfs8byF3Fpwu3XJ3ucgv7m3kTOhmzCHkSYzI9f9f2Reje3105ibB5f3j6ILFC1tfnFfVp99mzXxrl4bL/3YIkN7DxM4+INkka4QK6h4EE58SnSC9mRoF7VsjmcuNIMXlXnoFNqZy5WRjMI4lhkoah1TNT00WGHj77KmdY7rgb8vKEp+BAiDLVvJV3foqdsHEEkaX0NxFR/TLBT/ibT6np5wTlMSxQno/qbLB0jOyHP74DwXm0rm2bOHrQmI30DNkD7J7XAruNKnNcYZ3rhfcXlwifzVFqnknC4udiG5jtQFyqCCmB1uYHnpyWUJjQNAJYjcuHscwsUf//4AQ/hbwthUxV/zp6dWveaz43WeZnpnHfotFgq0UbZIop';
     } else {
         // sandbox (test) environment
         $devID = 'f2a7f4ed-c06f-494d-bc2e-af34346a2705';   // these prod keys are different from sandbox keys
